@@ -1,0 +1,13 @@
+{
+  "template": "https://github.com/justin-yan/templates-cruft",
+  "commit": "7c914a3e5f4af0069249aa6746500f81b44dd3da",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "package_name": "hypergrid",
+      "github_username": "@justin-yan",
+      "_template": "https://github.com/justin-yan/templates-cruft"
+    }
+  },
+  "directory": "packages-public/python-standard"
+}
