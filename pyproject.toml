@@ -25,7 +25,7 @@ where = ["src"]
 [tool.black]
 line-length = 150
 skip-string-normalization = true
-target-version = ['py310']
+target-version = ['py311']
 include = '\.pyi?$'
 
 [tool.isort]
