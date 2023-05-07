@@ -28,9 +28,11 @@ skip-string-normalization = true
 target-version = ['py311']
 include = '\.pyi?$'
 
-[tool.isort]
-profile = "black"
-src_paths = ["src", "tests"]
+[tool.ruff]
+select = ["E", "F"]
+line-length = 150
+target-version = "py311"
+
 
 [tool.pytest.ini_options]
 addopts = "-ra -q"
