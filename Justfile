@@ -32,9 +32,7 @@ TEST_FOLDER:='tests'
     docker run -i -v `pwd`:`pwd` -w `pwd` {{DEV_IMAGE}} just {{SUBCOMMAND}}
 
 @lint:
-    echo "TODO: replace with ruff"
-    pipenv run flake8 {{SRC_FOLDER}}
-    pipenv run isort . --check --diff
+    pipenv run ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
 
 typecheck:
     pipenv run mypy --explicit-package-bases -p {{PACKAGE}}
