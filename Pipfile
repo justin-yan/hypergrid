@@ -9,6 +9,7 @@ hypergrid = { editable = true, path = "." }
 [dev-packages]
 pytest = "*"
 hypothesis = "*"
+coverage = "*"
 black = "*"
 ruff = "*"
 mypy = "*"

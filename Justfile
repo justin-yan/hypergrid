@@ -45,3 +45,11 @@ format:
     pipenv run black --verbose {{SRC_FOLDER}} {{TEST_FOLDER}}
     pipenv run isort .
 
+stats:
+    pipenv run coverage run -m pytest {{TEST_FOLDER}}
+    pipenv run coverage report -m
+    scc --by-file --include-ext py
+
+######
+## Custom Section
+######
