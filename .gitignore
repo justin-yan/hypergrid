@@ -5,9 +5,9 @@ __pycache__/
 .ruff_cache
 .hypothesis
 .pytest_cache
+.coverage
 *.egg-info*
 dist/
-
 
 ######
 ## Custom Section
