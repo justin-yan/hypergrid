@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "hypergrid"
 version = "0.0.1"
 authors = [
-    { name="Justin Yan", email="justin@yan.family" }
+    { name="Justin Yan", email="justin@iomorphic.com" }
 ]
 description = "Hypergrid is a Python package for the concise declaration and manipulation of parameter grids, making hyperparameter optimization and batch job dispatch more manageable."
 readme = "README.md"
