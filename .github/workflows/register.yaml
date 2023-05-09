@@ -1,10 +1,10 @@
-name: Register Package
+name: Register
 on:
   push:
     branches:
       - main
 jobs:
-  package-register:
+  register:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/iomorphic/dev-py:latest
@@ -15,3 +15,8 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: '2'
+
+      - env:
+          PYPI_USERNAME: __token__
+          PYPI_PASSWORD: ${{ secrets.PYPI_REGISTRY_KEY }}
+        run: just register

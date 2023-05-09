@@ -18,10 +18,10 @@ TEST_FOLDER:='tests'
     pipenv run python -m build
 
 @register:
-    git diff --name-only HEAD^1 HEAD -G"version" "pyproject.toml" | cut -d "/" -f2 | uniq | xargs -I {} sh -c 'just _register'
+    git diff --name-only HEAD^1 HEAD -G"version" "pyproject.toml" | uniq | xargs -I {} sh -c 'just _register'
 
 @_register: init build
-    pipenv run twine upload --repository-url $PY_PRIVATE_REPO_URL -u $PY_PRIVATE_REPO_USERNAME -p $PY_PRIVATE_REPO_PASSWORD dist/*
+    pipenv run twine upload -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
 
 @init:
     [ -f Pipfile.lock ] && echo "Lockfile already exists" || pipenv lock

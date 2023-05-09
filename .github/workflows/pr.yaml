@@ -1,7 +1,7 @@
 name: PR
 on: [pull_request]
 jobs:
-  package-pr:
+  pr:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/iomorphic/dev-py:latest
