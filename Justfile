@@ -50,6 +50,28 @@ stats:
     pipenv run coverage report -m
     scc --by-file --include-ext py
 
+crossverify:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
+    for py in 3.8.15 3.9.15 3.10.8 3.11.3
+    do
+        pyenv install -s $py
+        pyenv local $py
+        python -m venv /tmp/$py-crossverify
+        source /tmp/$py-crossverify/bin/activate > /dev/null 2> /dev/null
+        python --version
+        pip -q install ruff mypy pytest hypothesis
+        pip -q install -e .
+        ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
+        mypy --explicit-package-bases -p {{PACKAGE}}
+        mypy --allow-untyped-defs tests
+        pytest --hypothesis-show-statistics {{TEST_FOLDER}}
+        deactivate > /dev/null 2> /dev/null
+        rm -rf /tmp/$py-crossverify
+        pyenv local --unset
+    done
+
 ######
 ## Custom Section
 ######
