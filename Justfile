@@ -1,5 +1,5 @@
 PACKAGE:='hypergrid'
-DEV_IMAGE:='ghcr.io/iomorphic/dev-python:latest'
+DEV_IMAGE:='ghcr.io/iomorphic/dev-py:latest'
 SRC_FOLDER:='src'
 TEST_FOLDER:='tests'
 
@@ -34,23 +34,22 @@ TEST_FOLDER:='tests'
 @lint:
     pipenv run ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
 
-typecheck:
+@typecheck:
     pipenv run mypy --explicit-package-bases -p {{PACKAGE}}
     pipenv run mypy --allow-untyped-defs tests
 
-test:
+@test:
     pipenv run pytest --hypothesis-show-statistics {{TEST_FOLDER}}
 
-format:
-    pipenv run black --verbose {{SRC_FOLDER}} {{TEST_FOLDER}}
-    pipenv run isort .
+@format:
+    pipenv run ruff check --fix {{SRC_FOLDER}} {{TEST_FOLDER}}
 
-stats:
+@stats:
     pipenv run coverage run -m pytest {{TEST_FOLDER}}
     pipenv run coverage report -m
     scc --by-file --include-ext py
 
-crossverify:
+@crossverify:
     #!/usr/bin/env bash
     set -euxo pipefail
 

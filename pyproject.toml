@@ -42,12 +42,6 @@ where = ["src"]
 #######
 ### Miscellaneous Tool Configuration
 #######
-[tool.black]
-line-length = 150
-skip-string-normalization = true
-target-version = ['py311']
-include = '\.pyi?$'
-
 [tool.ruff]
 select = ["E", "F"]
 line-length = 150
