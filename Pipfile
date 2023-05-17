@@ -10,7 +10,6 @@ hypergrid = { editable = true, path = "." }
 pytest = "*"
 hypothesis = "*"
 coverage = "*"
-black = "*"
 ruff = "*"
 mypy = "*"
 build = "*"
