@@ -24,6 +24,9 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
+    ######
+    ### Custom Dependencies Below
+    ######
 ]
 
 [project.urls]
@@ -42,11 +45,19 @@ where = ["src"]
 #######
 ### Miscellaneous Tool Configuration
 #######
+[tool.black]
+line-length = 150
+skip-string-normalization = true
+target-version = ['py311']
+include = '\.pyi?$'
+
 [tool.ruff]
-select = ["E", "F"]
+select = ["E", "F", "W", "I"]
 line-length = 150
 target-version = "py311"
 
+[tool.ruff.isort]
+known-first-party = ["hypergrid"]
 
 [tool.pytest.ini_options]
 addopts = "-ra -q"
@@ -55,8 +66,19 @@ addopts = "-ra -q"
 mypy_path = "src"
 disallow_untyped_defs = true
 disallow_any_unimported = true
+allow_redefinition = false
+ignore_errors = false
+implicit_reexport = false
+local_partial_types = true
 no_implicit_optional = true
-check_untyped_defs = true
-warn_return_any = true
-show_error_codes = true
+strict_equality = true
+strict_optional = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_configs = true
 warn_unused_ignores = true
+
+######
+### Custom Directives Below
+######

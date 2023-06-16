@@ -7,13 +7,18 @@ name = "pypi"
 hypergrid = { editable = true, path = "." }
 
 [dev-packages]
-pytest = "*"
-hypothesis = "*"
-coverage = "*"
-ruff = "*"
-mypy = "*"
-build = "*"
-twine = "*"
+pytest = ">5"
+hypothesis = ">5"
+coverage = ">5"
+black = ">22"
+ruff = ">0.0.265"
+mypy = ">1.2"
+build = ">0.8"
+twine = ">3"
 
 [requires]
 python_version = "3.11.3"
+
+#######
+### Custom Pipfile Directives
+#######

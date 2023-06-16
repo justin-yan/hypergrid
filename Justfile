@@ -18,7 +18,7 @@ TEST_FOLDER:='tests'
     pipenv run python -m build
 
 @register:
-    git diff --name-only HEAD^1 HEAD -G"version" "pyproject.toml" | uniq | xargs -I {} sh -c 'just _register'
+    git diff --name-only HEAD^1 HEAD -G"^version" "pyproject.toml" | uniq | xargs -I {} sh -c 'just _register'
 
 @_register: init build
     pipenv run twine upload -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
@@ -43,6 +43,7 @@ TEST_FOLDER:='tests'
 
 @format:
     pipenv run ruff check --fix {{SRC_FOLDER}} {{TEST_FOLDER}}
+    pipenv run black --verbose {{SRC_FOLDER}} {{TEST_FOLDER}}
 
 @stats:
     pipenv run coverage run -m pytest {{TEST_FOLDER}}
