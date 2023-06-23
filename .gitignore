@@ -9,6 +9,7 @@ __pycache__/
 .python-version
 *.egg-info*
 dist/
+.venv
 
 ######
 ## Custom Section
