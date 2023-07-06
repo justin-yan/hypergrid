@@ -1,4 +1,4 @@
-PACKAGE:='hypergrid'
+PACKAGE_NAME:='hypergrid'
 DEV_IMAGE:='ghcr.io/iomorphic/dev-py:latest'
 SRC_FOLDER:='src'
 TEST_FOLDER:='tests'
@@ -24,18 +24,23 @@ TEST_FOLDER:='tests'
     pipenv run twine upload -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
 
 @init:
-    [ -f Pipfile.lock ] && echo "Lockfile already exists" || pipenv lock
+    [ -f Pipfile.lock ] && echo "Lockfile already exists" || PIPENV_VENV_IN_PROJECT=1 pipenv lock
     PIPENV_VENV_IN_PROJECT=1 pipenv sync --dev
 
 # docker host-mapped venv cannot be shared for localdev; container modified files not remapped to host user; pipenv sync is slow for subsequent cmds
-@docker SUBCOMMAND:
-    docker run -i -v `pwd`:`pwd` -w `pwd` {{DEV_IMAGE}} just init {{SUBCOMMAND}}
+@docker SUBCOMMAND FORCE="noforce":
+    #!/usr/bin/env bash
+    if [ "{{FORCE}}" = "--force" ]  || [ "{{FORCE}}" = "-f" ]; then
+        docker container prune --force
+        docker volume rm --force {{PACKAGE_NAME}}_pyvenv
+    fi
+    docker run -i -v `pwd`:`pwd` -v {{PACKAGE_NAME}}_pyvenv:`pwd`/.venv -w `pwd` {{DEV_IMAGE}} just init {{SUBCOMMAND}}
 
 @lint:
     pipenv run ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
 
 @typecheck:
-    pipenv run mypy --explicit-package-bases -p {{PACKAGE}}
+    pipenv run mypy --explicit-package-bases -p {{PACKAGE_NAME}}
     pipenv run mypy --allow-untyped-defs tests
 
 @test:
@@ -64,7 +69,7 @@ TEST_FOLDER:='tests'
         pip -q install ruff mypy pytest hypothesis
         pip -q install -e .
         ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
-        mypy --explicit-package-bases -p {{PACKAGE}}
+        mypy --explicit-package-bases -p {{PACKAGE_NAME}}
         mypy --allow-untyped-defs tests
         pytest --hypothesis-show-statistics {{TEST_FOLDER}}
         deactivate > /dev/null 2> /dev/null
