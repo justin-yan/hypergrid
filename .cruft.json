@@ -1,11 +1,13 @@
 {
   "template": "https://github.com/justin-yan/templates-cruft",
-  "commit": "20d71192d82b1d8850077cc266a2e409e1e42b4c",
+  "commit": "23c5039fad3a442d178b70e95fb4dbcccd5a8f73",
   "checkout": null,
   "context": {
     "cookiecutter": {
       "package_name": "hypergrid",
       "github_username": "@justin-yan",
+      "copyright_start_year": "2023",
+      "copyright_full_name": "Justin Yan",
       "_template": "https://github.com/justin-yan/templates-cruft"
     }
   },
