@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/justin-yan/templates-cruft",
-  "commit": "23c5039fad3a442d178b70e95fb4dbcccd5a8f73",
+  "commit": "33873349b4f5a20b96ad6a041aedaf709dc5c116",
   "checkout": null,
   "context": {
     "cookiecutter": {

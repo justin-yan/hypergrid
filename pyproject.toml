@@ -60,7 +60,7 @@ target-version = "py311"
 known-first-party = ["hypergrid"]
 
 [tool.pytest.ini_options]
-addopts = "-ra -q"
+addopts = "-ra -q --doctest-modules"
 
 [tool.mypy]
 mypy_path = "src"

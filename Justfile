@@ -28,7 +28,7 @@ TEST_FOLDER:='tests'
     PIPENV_VENV_IN_PROJECT=1 pipenv sync --dev
 
 # docker host-mapped venv cannot be shared for localdev; container modified files not remapped to host user; pipenv sync is slow for subsequent cmds
-@docker SUBCOMMAND FORCE="noforce":
+docker SUBCOMMAND FORCE="noforce":
     #!/usr/bin/env bash
     if [ "{{FORCE}}" = "--force" ]  || [ "{{FORCE}}" = "-f" ]; then
         docker container prune --force
@@ -55,7 +55,7 @@ TEST_FOLDER:='tests'
     pipenv run coverage report -m
     scc --by-file --include-ext py
 
-@crossverify:
+crossverify:
     #!/usr/bin/env bash
     set -euxo pipefail
 
