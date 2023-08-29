@@ -28,7 +28,7 @@ TEST_FOLDER:='tests'
     PIPENV_VENV_IN_PROJECT=1 pipenv sync --dev
 
 # docker host-mapped venv cannot be shared for localdev; container modified files not remapped to host user; pipenv sync is slow for subsequent cmds
-docker SUBCOMMAND FORCE="noforce":
+virt SUBCOMMAND FORCE="noforce":
     #!/usr/bin/env bash
     if [ "{{FORCE}}" = "--force" ]  || [ "{{FORCE}}" = "-f" ]; then
         docker container prune --force
