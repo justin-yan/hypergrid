@@ -7,7 +7,7 @@ jobs:
   register:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/iomorphic/dev-py:latest
+      image: ghcr.io/iomorphic/image/dev-py:latest
       volumes:
         - /usr/bin/docker:/usr/bin/docker
     steps:

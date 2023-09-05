@@ -1,5 +1,5 @@
-PACKAGE_NAME:='hypergrid'
-DEV_IMAGE:='ghcr.io/iomorphic/dev-py:latest'
+NAME:='hypergrid'
+DEV_IMAGE:='ghcr.io/iomorphic/image/dev-py:latest'
 SRC_FOLDER:='src'
 TEST_FOLDER:='tests'
 
@@ -32,15 +32,15 @@ virt SUBCOMMAND FORCE="noforce":
     #!/usr/bin/env bash
     if [ "{{FORCE}}" = "--force" ]  || [ "{{FORCE}}" = "-f" ]; then
         docker container prune --force
-        docker volume rm --force {{PACKAGE_NAME}}_pyvenv
+        docker volume rm --force {{NAME}}_pyvenv
     fi
-    docker run -i -v `pwd`:`pwd` -v {{PACKAGE_NAME}}_pyvenv:`pwd`/.venv -w `pwd` {{DEV_IMAGE}} just init {{SUBCOMMAND}}
+    docker run -i -v `pwd`:`pwd` -v {{NAME}}_pyvenv:`pwd`/.venv -w `pwd` {{DEV_IMAGE}} just init {{SUBCOMMAND}}
 
 @lint:
     pipenv run ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
 
 @typecheck:
-    pipenv run mypy --explicit-package-bases -p {{PACKAGE_NAME}}
+    pipenv run mypy --explicit-package-bases -p {{NAME}}
     pipenv run mypy --allow-untyped-defs tests
 
 @test:
@@ -69,7 +69,7 @@ crossverify:
         pip -q install ruff mypy pytest hypothesis
         pip -q install -e .
         ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
-        mypy --explicit-package-bases -p {{PACKAGE_NAME}}
+        mypy --explicit-package-bases -p {{NAME}}
         mypy --allow-untyped-defs tests
         pytest --hypothesis-show-statistics {{TEST_FOLDER}}
         deactivate > /dev/null 2> /dev/null
