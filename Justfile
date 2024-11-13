@@ -65,6 +65,9 @@ virt SUBCOMMAND FORCE="noforce":
 @repl:
     uv run python
 
+@run +COMMAND:
+    uv run {{COMMAND}}
+
 ######
 ## Custom Section Begin
 ######
