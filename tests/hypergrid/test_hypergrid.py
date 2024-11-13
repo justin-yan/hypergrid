@@ -42,8 +42,7 @@ def test_mapgrids():
 
 def test_filtergrids():
     g1 = Grid(example=[1, 2, 3])
-    fg = g1.filter(
-        lambda e: cast(int, e.example) % 2 == 0)  # https://github.com/python/mypy/issues/5697#issuecomment-425738017
+    fg = g1.filter(lambda e: cast(int, e.example) % 2 == 0)  # https://github.com/python/mypy/issues/5697#issuecomment-425738017
     assert len(list(fg)) == 1
     assert list(fg)[0].example == 2
 

@@ -4,7 +4,7 @@ jobs:
   pr:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/iomorphic/image/dev-py:latest
+      image: ghcr.io/iomorphic/image/cicd-py:latest
       volumes:
         - /usr/bin/docker:/usr/bin/docker
     steps:
@@ -13,4 +13,4 @@ jobs:
         with:
           fetch-depth: '0'
 
-      - run: just pr
+      - run: just cicd-pr

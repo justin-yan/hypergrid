@@ -8,26 +8,37 @@ TEST_FOLDER:='tests'
 @default:
     just --list
 
+@init:
+    [ -f uv.lock ] && echo "Lockfile already exists" || uv lock
+    uv sync
+
+@build:
+    uv build
+
 @verify: lint typecheck test
     echo "Done with Verification"
 
-@pr: init verify
-    echo "PR is successful!"
+@lint:
+    uv run ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
+    uv run ruff format --check {{SRC_FOLDER}} {{TEST_FOLDER}}
 
-@build:
-    pipenv run python -m build
+@typecheck:
+    uv run mypy --explicit-package-bases -p {{NAME}}
+    uv run mypy --allow-untyped-defs tests
 
-@register:
-    git diff --name-only HEAD^1 HEAD -G"^version" "pyproject.toml" | uniq | xargs -I {} sh -c 'just _register'
+@test:
+    uv run pytest --hypothesis-show-statistics {{TEST_FOLDER}}
 
-@_register: init build
-    pipenv run twine upload -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
+@format:
+    uv run ruff check --fix-only {{SRC_FOLDER}} {{TEST_FOLDER}}
+    uv run ruff format {{SRC_FOLDER}} {{TEST_FOLDER}}
 
-@init:
-    [ -f Pipfile.lock ] && echo "Lockfile already exists" || PIPENV_VENV_IN_PROJECT=1 pipenv lock
-    PIPENV_VENV_IN_PROJECT=1 pipenv sync --dev
+@stats:
+    uv run coverage run -m pytest {{TEST_FOLDER}}
+    uv run coverage report -m
+    scc --by-file --include-ext py
 
-# docker host-mapped venv cannot be shared for localdev; container modified files not remapped to host user; pipenv sync is slow for subsequent cmds
+# docker host-mapped venv cannot be shared for localdev; container modified files not remapped to host user
 virt SUBCOMMAND FORCE="noforce":
     #!/usr/bin/env bash
     if [ "{{FORCE}}" = "--force" ]  || [ "{{FORCE}}" = "-f" ]; then
@@ -36,46 +47,23 @@ virt SUBCOMMAND FORCE="noforce":
     fi
     docker run -i -v `pwd`:`pwd` -v {{NAME}}_pyvenv:`pwd`/.venv -w `pwd` {{DEV_IMAGE}} just init {{SUBCOMMAND}}
 
-@lint:
-    pipenv run ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
+@cicd-pr: init verify
+    echo "PR is successful!"
 
-@typecheck:
-    pipenv run mypy --explicit-package-bases -p {{NAME}}
-    pipenv run mypy --allow-untyped-defs tests
+@cicd-register:
+    git diff --name-only HEAD^1 HEAD -G"^version" "pyproject.toml" | uniq | xargs -I {} sh -c 'just _register'
 
-@test:
-    pipenv run pytest --hypothesis-show-statistics {{TEST_FOLDER}}
+@_register: init build
+    uv publish -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
 
-@format:
-    pipenv run ruff check --fix {{SRC_FOLDER}} {{TEST_FOLDER}}
-    pipenv run black --verbose {{SRC_FOLDER}} {{TEST_FOLDER}}
+@lock:
+    uv lock
 
-@stats:
-    pipenv run coverage run -m pytest {{TEST_FOLDER}}
-    pipenv run coverage report -m
-    scc --by-file --include-ext py
+@sync:
+    uv sync
 
-crossverify:
-    #!/usr/bin/env bash
-    set -euxo pipefail
-
-    for py in 3.8.15 3.9.15 3.10.8 3.11.4
-    do
-        pyenv install -s $py
-        pyenv local $py
-        python -m venv /tmp/$py-crossverify
-        source /tmp/$py-crossverify/bin/activate > /dev/null 2> /dev/null
-        python --version
-        pip -q install ruff mypy pytest hypothesis
-        pip -q install -e .
-        ruff check {{SRC_FOLDER}} {{TEST_FOLDER}}
-        mypy --explicit-package-bases -p {{NAME}}
-        mypy --allow-untyped-defs tests
-        pytest --hypothesis-show-statistics {{TEST_FOLDER}}
-        deactivate > /dev/null 2> /dev/null
-        rm -rf /tmp/$py-crossverify
-        pyenv local --unset
-    done
+@repl:
+    uv run python
 
 ######
 ## Custom Section Begin
