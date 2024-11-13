@@ -7,7 +7,7 @@ jobs:
   register:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/iomorphic/image/dev-py:latest
+      image: ghcr.io/iomorphic/image/cicd-py:latest
       volumes:
         - /usr/bin/docker:/usr/bin/docker
     steps:
@@ -21,4 +21,4 @@ jobs:
       - env:
           PYPI_USERNAME: __token__
           PYPI_PASSWORD: ${{ secrets.PYPI_REGISTRY_KEY }}
-        run: just register
+        run: just cicd-register

@@ -6,7 +6,6 @@ __pycache__/
 .hypothesis
 .pytest_cache
 .coverage
-.python-version
 *.egg-info*
 dist/
 .venv
@@ -15,8 +14,8 @@ dist/
 ## Custom Section Begin
 ######
 
+.idea/
+
 ######
 ## Custom Section End
 ######
-
-.idea/
