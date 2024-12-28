@@ -1,208 +1,202 @@
 from __future__ import annotations
 
 import itertools
-from collections import OrderedDict, namedtuple
-from typing import Any, Callable, List, Protocol
+from collections import namedtuple
+from typing import Any, Callable, Iterator, List, Protocol, Type, runtime_checkable
+
+from hypergrid.dimension import Dimension, IDimension
 
 
+@runtime_checkable
 class IGrid(Protocol):
+    grid_element: Type[tuple]
+
+    @property
+    def dimension_names(self) -> list[str]:
+        return list(self.grid_element._fields)  # type: ignore[attr-defined]
+
     def __repr__(self) -> str: ...
 
-    def __str__(self) -> str: ...
+    def __str__(self) -> str:
+        return self.__repr__()
 
-    def __iter__(self) -> Any: ...
+    def __iter__(self) -> Iterator: ...
 
-    def __add__(self, other: IGrid) -> SumGrid:
-        return SumGrid(self, other)
+    def __add__(self, other: IGrid | IDimension) -> SumGrid:
+        match other:
+            case IGrid():
+                return SumGrid(self, other)
+            case IDimension():
+                return SumGrid(self, Grid(other))
 
-    def __mul__(self, other: IGrid) -> ProductGrid:
-        return ProductGrid(self, other)
+    def __or__(self, other: IGrid | IDimension) -> SumGrid:
+        return self.__add__(other)
 
-    def __and__(self, other: IGrid) -> CoGrid:
-        return CoGrid(self, other)
+    def __mul__(self, other: IGrid | IDimension) -> ProductGrid:
+        match other:
+            case IGrid():
+                return ProductGrid(self, other)
+            case IDimension():
+                return ProductGrid(self, Grid(other))
 
-    def apply(self, **kwargs: Callable[[Any], Any]) -> IGrid:
-        # TODO: what should we do if no lambda is provided?
-        # TODO: what should the expected signature of the lambda be?  Should we unpack the namedtuple or receive a namedtuple instead?
-        applied_grids = []
-
-        for dim_name, transform in kwargs.items():
-            transformed_elements = [transform(grid_element) for grid_element in self]
-            new_grid = Grid(**{dim_name: transformed_elements})
-            applied_grids.append(new_grid)
-
-        final_co_grid: IGrid = applied_grids[0]
-        for grid in applied_grids[1:]:
-            final_co_grid = CoGrid(final_co_grid, grid)
-
-        return final_co_grid
-
-    def select(self, *dim_names: str) -> IGrid:
-        # TODO: what do we do if no dimnames are provided?
-        selected_elements: dict = {dim_name: [] for dim_name in dim_names}
-
-        for grid_element in self:
-            for dim_name in dim_names:
-                # TODO: How do we want to handle the case when a value isn't present?
-                selected_value = getattr(grid_element, dim_name)
-                selected_elements[dim_name].append(selected_value)
-
-        selected_grids = [Grid(**{dim_name: values}) for dim_name, values in selected_elements.items()]
-
-        final_co_grid: IGrid = selected_grids[0]
-        for grid in selected_grids[1:]:
-            final_co_grid = CoGrid(final_co_grid, grid)
-
-        return final_co_grid
-
-    def map(self, **kwargs: Callable[[Any], Any]) -> MapGrid:
-        return MapGrid(self, **kwargs)
+    def __and__(self, other: IGrid | IDimension) -> ZipGrid:
+        match other:
+            case IGrid():
+                return ZipGrid(self, other)
+            case IDimension():
+                return ZipGrid(self, Grid(other))
 
     def filter(self, predicate: Callable[[Any], bool]) -> FilterGrid:
         return FilterGrid(self, predicate)
 
+    def select(self, *dim_names: str) -> SelectGrid:
+        return SelectGrid(self, *dim_names)
+
+    def map(self, **kwargs: Callable[[Any], Any]) -> MapGrid:
+        return MapGrid(self, **kwargs)
+
+    def map_to(self, **kwargs: Callable[[Any], Any]) -> MapToGrid:
+        return MapToGrid(self, **kwargs)
+
+
+class Grid(IGrid):
+    dimensions: list[IDimension]
+
+    def __init__(self, *args: IDimension, **kwargs: List[Any]) -> None:
+        dims = list(args)
+        for dim, values in kwargs.items():
+            dims.append(Dimension(**{dim: values}))
+        assert len(dims) > 0, "Must provide at least one meaningful dimension"
+        assert len(dims) == len(set(dims)), "Dimension names must be unique"
+        self.dimensions = dims
+        self.grid_element = namedtuple("GridElement", [dim.name for dim in self.dimensions])  # type: ignore[misc]
+
+    def __repr__(self) -> str:
+        dim_str = ", ".join([repr(dim) for dim in self.dimensions])
+        return f"Grid({dim_str})"
+
+    def __iter__(self) -> Iterator:
+        for element_tuple in itertools.product(*[dim.__iter__() for dim in self.dimensions]):
+            yield self.grid_element(*element_tuple)
+
 
 class SumGrid(IGrid):
     def __init__(self, grid1: IGrid, grid2: IGrid) -> None:
+        assert set(grid1.dimension_names) == set(grid2.dimension_names)
         self.grid1 = grid1
         self.grid2 = grid2
+        self.grid_element = grid1.grid_element
 
     def __repr__(self) -> str:
         return f"SumGrid({repr(self.grid1)}, {repr(self.grid2)})"
 
-    def __str__(self) -> str:
-        return f"SumGrid({str(self.grid1)}, {str(self.grid2)})"
-
-    def __iter__(self) -> Any:
+    def __iter__(self) -> Iterator:
         for grid_element in itertools.chain(self.grid1, self.grid2):
             yield grid_element
 
 
 class ProductGrid(IGrid):
-    # TODO: Make product grids fail if subdimensions collide?  How does this work with things like maps, etc.?
     def __init__(self, grid1: IGrid, grid2: IGrid) -> None:
+        assert set(grid1.dimension_names).isdisjoint(set(grid2.dimension_names)), "Dimensions must be exactly matching"
         self.grid1 = grid1
         self.grid2 = grid2
-        self.namedtuple_cache: dict = {}
+        self.grid_element = namedtuple("GridElement", grid1.dimension_names + grid2.dimension_names)  # type: ignore[misc]
 
     def __repr__(self) -> str:
         return f"ProductGrid({repr(self.grid1)}, {repr(self.grid2)})"
 
-    def __str__(self) -> str:
-        return f"ProductGrid({str(self.grid1)}, {str(self.grid2)})"
-
-    def __iter__(self) -> Any:
-        # TODO: is there a way to do this without accessing private attributes?
+    def __iter__(self) -> Iterator:
         for grid_element1, grid_element2 in itertools.product(self.grid1, self.grid2):
-            field_names1 = grid_element1._fields
-            field_names2 = grid_element2._fields
-            concatenated_field_names = list(field_names1) + list(field_names2)
-            field_names_key = tuple(concatenated_field_names)
-
-            if field_names_key not in self.namedtuple_cache:
-                self.namedtuple_cache[field_names_key] = namedtuple("GridElement", concatenated_field_names)
-
-            concatenated_namedtuple_class = self.namedtuple_cache[field_names_key]
-            concatenated_element = concatenated_namedtuple_class(*(grid_element1 + grid_element2))
-            yield concatenated_element
+            yield self.grid_element(*(grid_element1 + grid_element2))
 
 
-class Grid(IGrid):
-    dimensions: OrderedDict[str, List[Any]]
+class ZipGrid(IGrid):
+    """
+    Mimic python "zip" of two iterables.
+    """
 
-    def __init__(self, **kwargs: List[Any]) -> None:
-        self.dimensions = OrderedDict()
-        for dim, values in kwargs.items():
-            self.dimensions[dim] = values
-
-    def __repr__(self) -> str:
-        dim_str = ", ".join([f"{dim}={values}" for dim, values in self.dimensions.items()])
-        return f"Grid({dim_str})"
-
-    def __str__(self) -> str:
-        return self.__repr__()
-
-    def __iter__(self) -> Any:
-        fieldnames: tuple = tuple(self.dimensions.keys())
-        namedtuple_class = namedtuple("GridElement", fieldnames)  # type: ignore
-        for element_tuple in itertools.product(*self.dimensions.values()):
-            yield namedtuple_class(*element_tuple)
-
-
-class GridShapeMismatchError(Exception):
-    pass
-
-
-class CoGrid(IGrid):
     def __init__(self, grid1: IGrid, grid2: IGrid) -> None:
-        if len(list(grid1)) == len(list(grid2)):
-            self.grid1 = grid1
-            self.grid2 = grid2
-            self.namedtuple_cache: dict = {}
-        else:
-            raise GridShapeMismatchError("The shapes of the input grids must be the same")
+        assert set(grid1.dimension_names).isdisjoint(set(grid2.dimension_names)), "Dimensions must be exactly matching"
+        self.grid1 = grid1
+        self.grid2 = grid2
+        self.grid_element = namedtuple("GridElement", grid1.dimension_names + grid2.dimension_names)  # type: ignore[misc]
 
     def __repr__(self) -> str:
-        return f"CoGrid({repr(self.grid1)}, {repr(self.grid2)})"
+        return f"ZipGrid({repr(self.grid1)}, {repr(self.grid2)})"
 
-    def __str__(self) -> str:
-        return f"CoGrid({str(self.grid1)}, {str(self.grid2)})"
-
-    def __iter__(self) -> Any:
+    def __iter__(self) -> Iterator:
         for grid_element1, grid_element2 in zip(self.grid1, self.grid2):
-            field_names1 = grid_element1._fields
-            field_names2 = grid_element2._fields
-            concatenated_field_names = list(field_names1) + list(field_names2)
-            field_names_key = tuple(concatenated_field_names)
-
-            if field_names_key not in self.namedtuple_cache:
-                self.namedtuple_cache[field_names_key] = namedtuple("GridElement", concatenated_field_names)
-
-            concatenated_namedtuple_class = self.namedtuple_cache[field_names_key]
-            concatenated_element = concatenated_namedtuple_class(*(grid_element1 + grid_element2))
-            yield concatenated_element
-
-
-class MapGrid(IGrid):
-    def __init__(self, grid: IGrid, **kwargs: Callable[[Any], Any]) -> None:
-        self.grid = grid
-        self.dimension_mapping = kwargs
-        self.namedtuple_cache: dict = {}
-
-    def __repr__(self) -> str:
-        mappings_str = ", ".join([f"{dim_name}={func.__name__}" for dim_name, func in self.dimension_mapping.items()])
-        return f"MapGrid({repr(self.grid)}, {mappings_str})"
-
-    def __str__(self) -> str:
-        return f"MapGrid({str(self.grid)}, {', '.join(self.dimension_mapping.keys())})"
-
-    def __iter__(self) -> Any:
-        for grid_element in self.grid:
-            new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
-            concatenated_values = tuple(grid_element) + tuple(new_values.values())
-            field_names = grid_element._fields + tuple(new_values.keys())
-
-            field_names_key = tuple(field_names)
-            if field_names_key not in self.namedtuple_cache:
-                self.namedtuple_cache[field_names_key] = namedtuple("GridElement", field_names)
-
-            concatenated_namedtuple_class = self.namedtuple_cache[field_names_key]
-            concatenated_element = concatenated_namedtuple_class(*concatenated_values)
-            yield concatenated_element
+            yield self.grid_element(*(grid_element1 + grid_element2))
 
 
 class FilterGrid(IGrid):
     def __init__(self, grid: IGrid, predicate: Callable[[Any], bool]) -> None:
         self.grid = grid
         self.predicate = predicate
+        self.grid_element = grid.grid_element
 
     def __repr__(self) -> str:
         return f"FilterGrid({repr(self.grid)}, {self.predicate.__name__})"
 
-    def __str__(self) -> str:
-        return f"FilterGrid({str(self.grid)}, {self.predicate.__name__})"
-
-    def __iter__(self) -> Any:
+    def __iter__(self) -> Iterator:
         for grid_element in self.grid:
             if self.predicate(grid_element):
                 yield grid_element
+
+
+class SelectGrid(IGrid):
+    def __init__(self, grid: IGrid, *select_dims: str) -> None:
+        assert len(set(select_dims)) == len(select_dims), "Selected columns must all be unique"
+        assert set(select_dims) <= set(grid.dimension_names), "Selected dimensions must be subset of grid dimensions"
+        self.grid = grid
+        self.select_dims = select_dims
+        self.grid_element = namedtuple("GridElement", [name for name in grid.dimension_names if name in self.select_dims])  # type: ignore[misc]
+
+    def __repr__(self) -> str:
+        return f"SelectGrid({repr(self.grid)}, {repr(self.select_dims)})"
+
+    def __iter__(self) -> Iterator:
+        for grid_element in self.grid:
+            element_list = []
+            for dim_name in self.dimension_names:
+                try:
+                    selected_value = getattr(grid_element, dim_name)
+                except AttributeError:
+                    selected_value = None
+                element_list.append(selected_value)
+            yield self.grid_element(*element_list)
+
+
+class MapGrid(IGrid):
+    def __init__(self, grid: IGrid, **kwargs: Callable[[Any], Any]) -> None:
+        assert len(set(kwargs.keys())) == len(kwargs.keys()), "New columns must all have unique names"
+        self.grid = grid
+        self.dimension_mapping = kwargs
+        self.grid_element = namedtuple("GridElement", list(kwargs.keys()))  # type: ignore[misc]
+
+    def __repr__(self) -> str:
+        mappings_str = ", ".join([f"{dim_name}={func.__name__}" for dim_name, func in self.dimension_mapping.items()])
+        return f"MapGrid({repr(self.grid)}, {mappings_str})"
+
+    def __iter__(self) -> Iterator:
+        for grid_element in self.grid:
+            new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
+            yield self.grid_element(**new_values)
+
+
+class MapToGrid(IGrid):
+    def __init__(self, grid: IGrid, **kwargs: Callable[[Any], Any]) -> None:
+        assert len(set(kwargs.keys())) == len(kwargs.keys()), "New columns must all have unique names"
+        assert set(grid.dimension_names).isdisjoint(set(kwargs.keys())), "New columns must not have name collisions with old columns"
+        self.grid = grid
+        self.dimension_mapping = kwargs
+        self.grid_element = namedtuple("GridElement", grid.dimension_names + list(kwargs.keys()))  # type: ignore[misc]
+
+    def __repr__(self) -> str:
+        mappings_str = ", ".join([f"{dim_name}={func.__name__}" for dim_name, func in self.dimension_mapping.items()])
+        return f"MapToGrid({repr(self.grid)}, {mappings_str})"
+
+    def __iter__(self) -> Iterator:
+        for grid_element in self.grid:
+            new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
+            yield self.grid_element(**(grid_element._asdict() | new_values))
