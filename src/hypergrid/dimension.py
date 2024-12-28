@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Generic, Iterable, Iterator, Protocol, TypeVar
+from typing import TYPE_CHECKING, Generic, Iterable, Iterator, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
     from hypergrid.grid import Grid
@@ -7,6 +7,7 @@ T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
 
 
+@runtime_checkable
 class IDimension(Protocol[T_co]):
     name: str
 

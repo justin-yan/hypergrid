@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import itertools
 from collections import namedtuple
-from typing import Any, Callable, Iterator, List, Protocol, Type, runtime_checkable
+from typing import Any, Callable, Iterable, Iterator, List, Protocol, Type, TypeAlias, runtime_checkable
 
 from hypergrid.dimension import Dimension, IDimension
+
+RawDimension: TypeAlias = tuple[str, Iterable]
 
 
 @runtime_checkable
@@ -22,29 +24,41 @@ class IGrid(Protocol):
 
     def __iter__(self) -> Iterator: ...
 
-    def __add__(self, other: IGrid | IDimension) -> SumGrid:
+    def __add__(self, other: IGrid | IDimension | RawDimension) -> SumGrid:
         match other:
             case IGrid():
                 return SumGrid(self, other)
             case IDimension():
                 return SumGrid(self, Grid(other))
+            case (str(), it) if isinstance(it, Iterable):  # RawDimension
+                return SumGrid(self, Grid(Dimension(**{other[0]: other[1]})))
+            case _:
+                raise ValueError("Invalid argument for grid operation")
 
-    def __or__(self, other: IGrid | IDimension) -> SumGrid:
+    def __or__(self, other: IGrid | IDimension | RawDimension) -> SumGrid:
         return self.__add__(other)
 
-    def __mul__(self, other: IGrid | IDimension) -> ProductGrid:
+    def __mul__(self, other: IGrid | IDimension | RawDimension) -> ProductGrid:
         match other:
             case IGrid():
                 return ProductGrid(self, other)
             case IDimension():
                 return ProductGrid(self, Grid(other))
+            case (str(), it) if isinstance(it, Iterable):  # RawDimension
+                return ProductGrid(self, Grid(Dimension(**{other[0]: other[1]})))
+            case _:
+                raise ValueError("Invalid argument for grid operation")
 
-    def __and__(self, other: IGrid | IDimension) -> ZipGrid:
+    def __and__(self, other: IGrid | IDimension | RawDimension) -> ZipGrid:
         match other:
             case IGrid():
                 return ZipGrid(self, other)
             case IDimension():
                 return ZipGrid(self, Grid(other))
+            case (str(), it) if isinstance(it, Iterable):  # RawDimension
+                return ZipGrid(self, Grid(Dimension(**{other[0]: other[1]})))
+            case _:
+                raise ValueError("Invalid argument for grid operation")
 
     def filter(self, predicate: Callable[[Any], bool]) -> FilterGrid:
         return FilterGrid(self, predicate)
