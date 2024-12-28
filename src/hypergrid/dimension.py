@@ -1,4 +1,7 @@
-from typing import Generic, Iterator, Protocol, TypeVar
+from typing import TYPE_CHECKING, Generic, Iterator, Protocol, TypeVar
+
+if TYPE_CHECKING:
+    from hypergrid.grid import Grid
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
@@ -13,6 +16,11 @@ class IDimension(Protocol[T_co]):
         return self.__repr__()
 
     def __iter__(self) -> Iterator[T_co]: ...
+
+    def to_grid(self) -> "Grid":
+        from hypergrid.grid import Grid
+
+        return Grid(self)
 
 
 # TODO: Create a type alias for raw python type instantiation options (range/slice iterators, list, etc.)
