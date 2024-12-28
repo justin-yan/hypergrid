@@ -9,10 +9,11 @@ from hypergrid.dimension import Dimension, IDimension
 
 @runtime_checkable
 class IGrid(Protocol):
-    # TODO: The ordering of the dimension_names determines the sequencing of fields in grid_element
-    #   figure out a better way to encode this invariant (turn dimension_names into a property?)
-    dimension_names: list[str]
     grid_element: Type[tuple]
+
+    @property
+    def dimension_names(self) -> list[str]:
+        return list(self.grid_element._fields)  # type: ignore[attr-defined]
 
     def __repr__(self) -> str: ...
 
@@ -67,8 +68,7 @@ class Grid(IGrid):
             dims.append(Dimension(**{dim: values}))
         assert len(dims) == len(set(dims)), "Dimension names must be unique"
         self.dimensions = dims
-        self.dimension_names = [dim.name for dim in self.dimensions]
-        self.grid_element = namedtuple("GridElement", self.dimension_names)  # type: ignore[misc]
+        self.grid_element = namedtuple("GridElement", [dim.name for dim in self.dimensions])  # type: ignore[misc]
 
     def __repr__(self) -> str:
         dim_str = ", ".join([repr(dim) for dim in self.dimensions])
@@ -85,7 +85,6 @@ class SumGrid(IGrid):
         self.grid1 = grid1
         self.grid2 = grid2
         self.grid_element = grid1.grid_element
-        self.dimension_names = grid1.dimension_names
 
     def __repr__(self) -> str:
         return f"SumGrid({repr(self.grid1)}, {repr(self.grid2)})"
@@ -100,8 +99,7 @@ class ProductGrid(IGrid):
         assert set(grid1.dimension_names).isdisjoint(set(grid2.dimension_names)), "Dimensions must be exactly matching"
         self.grid1 = grid1
         self.grid2 = grid2
-        self.dimension_names = grid1.dimension_names + grid2.dimension_names
-        self.grid_element = namedtuple("GridElement", self.dimension_names)  # type: ignore[misc]
+        self.grid_element = namedtuple("GridElement", grid1.dimension_names + grid2.dimension_names)  # type: ignore[misc]
 
     def __repr__(self) -> str:
         return f"ProductGrid({repr(self.grid1)}, {repr(self.grid2)})"
@@ -120,8 +118,7 @@ class ZipGrid(IGrid):
         assert set(grid1.dimension_names).isdisjoint(set(grid2.dimension_names)), "Dimensions must be exactly matching"
         self.grid1 = grid1
         self.grid2 = grid2
-        self.dimension_names = grid1.dimension_names + grid2.dimension_names
-        self.grid_element = namedtuple("GridElement", self.dimension_names)  # type: ignore[misc]
+        self.grid_element = namedtuple("GridElement", grid1.dimension_names + grid2.dimension_names)  # type: ignore[misc]
 
     def __repr__(self) -> str:
         return f"ZipGrid({repr(self.grid1)}, {repr(self.grid2)})"
@@ -135,7 +132,6 @@ class FilterGrid(IGrid):
     def __init__(self, grid: IGrid, predicate: Callable[[Any], bool]) -> None:
         self.grid = grid
         self.predicate = predicate
-        self.dimension_names = grid.dimension_names
         self.grid_element = grid.grid_element
 
     def __repr__(self) -> str:
@@ -153,8 +149,7 @@ class SelectGrid(IGrid):
         assert set(select_dims) <= set(grid.dimension_names), "Selected dimensions must be subset of grid dimensions"
         self.grid = grid
         self.select_dims = select_dims
-        self.dimension_names = [name for name in grid.dimension_names if name in self.select_dims]
-        self.grid_element = namedtuple("GridElement", self.dimension_names)  # type: ignore[misc]
+        self.grid_element = namedtuple("GridElement", [name for name in grid.dimension_names if name in self.select_dims])  # type: ignore[misc]
 
     def __repr__(self) -> str:
         return f"SelectGrid({repr(self.grid)}, {repr(self.select_dims)})"
@@ -176,8 +171,7 @@ class MapGrid(IGrid):
         assert len(set(kwargs.keys())) == len(kwargs.keys()), "New columns must all have unique names"
         self.grid = grid
         self.dimension_mapping = kwargs
-        self.dimension_names = list(kwargs.keys())
-        self.grid_element = namedtuple("GridElement", self.dimension_names)  # type: ignore[misc]
+        self.grid_element = namedtuple("GridElement", list(kwargs.keys()))  # type: ignore[misc]
 
     def __repr__(self) -> str:
         mappings_str = ", ".join([f"{dim_name}={func.__name__}" for dim_name, func in self.dimension_mapping.items()])
@@ -195,8 +189,7 @@ class MapToGrid(IGrid):
         assert set(grid.dimension_names).isdisjoint(set(kwargs.keys())), "New columns must not have name collisions with old columns"
         self.grid = grid
         self.dimension_mapping = kwargs
-        self.dimension_names = grid.dimension_names + list(kwargs.keys())
-        self.grid_element = namedtuple("GridElement", self.dimension_names)  # type: ignore[misc]
+        self.grid_element = namedtuple("GridElement", grid.dimension_names + list(kwargs.keys()))  # type: ignore[misc]
 
     def __repr__(self) -> str:
         mappings_str = ", ".join([f"{dim_name}={func.__name__}" for dim_name, func in self.dimension_mapping.items()])
