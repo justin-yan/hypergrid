@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Generic, Iterator, Protocol, TypeVar
+from typing import TYPE_CHECKING, Generic, Iterable, Iterator, Protocol, TypeVar
 
 if TYPE_CHECKING:
     from hypergrid.grid import Grid
@@ -23,12 +23,8 @@ class IDimension(Protocol[T_co]):
         return Grid(self)
 
 
-# TODO: Create a type alias for raw python type instantiation options (range/slice iterators, list, etc.)
-# TODO: support generator (infinite) dimensions
-
-
 class Dimension(IDimension, Generic[T]):
-    def __init__(self, **kwargs: list[T]):
+    def __init__(self, **kwargs: Iterable[T]):
         assert len(kwargs) == 1, "Dimensions are 1-d, use Grids for multiple dimensions"
         for name, values in kwargs.items():
             self.name = name
@@ -39,7 +35,3 @@ class Dimension(IDimension, Generic[T]):
 
     def __iter__(self) -> Iterator[T]:
         yield from self.values
-
-
-if __name__ == "__main__":
-    print(str(Dimension(test=[1, 2, 3])))

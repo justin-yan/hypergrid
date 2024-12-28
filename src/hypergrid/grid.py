@@ -200,7 +200,3 @@ class MapToGrid(IGrid):
         for grid_element in self.grid:
             new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
             yield self.grid_element(**(grid_element._asdict() | new_values))
-
-
-if __name__ == "__main__":
-    print([i for i in Grid(test=[1, 2, 3], test2=[5, 6, 7])])
