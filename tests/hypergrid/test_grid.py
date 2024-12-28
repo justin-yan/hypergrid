@@ -1,46 +1,96 @@
+import operator
+from functools import reduce
+from math import prod
 from typing import cast
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+from hypothesis.strategies import DrawFn, composite
 
 from hypergrid.grid import Grid
 
 
-def test_base_construction():
-    g1 = Grid(example=[1, 2, 3], example2=["a", "b", "c"])
-    print([i for i in g1])
-    assert len(list(g1)) == 9
-    assert list(g1)[0].example == 1
-    assert list(g1)[0].example2 == "a"
+@composite
+def het_typed_lists(draw: DrawFn):
+    retlists = []
+    for _ in range(draw(st.integers(min_value=1, max_value=5))):
+        element_strategy = draw(
+            st.sampled_from(
+                [
+                    st.integers(),
+                    st.text(),
+                    st.floats(allow_infinity=False, allow_nan=False),
+                    st.booleans(),
+                ]
+            )
+        )
+        retlists.append(draw(st.lists(element_strategy)))
+    return retlists
 
 
-def test_grid_sums():
-    g1 = Grid(example=[1, 2, 3])
-    g2 = Grid(example=[4, 5, 6])
-    assert len(list(g1 + g2)) == 6
-    assert len(list(g1 | g2)) == 6
+@composite
+def hom_typed_lists(draw: DrawFn):
+    element_strategy = draw(
+        st.sampled_from(
+            [
+                st.integers(),
+                st.text(),
+                st.floats(allow_infinity=False, allow_nan=False),
+                st.booleans(),
+            ]
+        )
+    )
+    num_lists = draw(st.integers(min_value=1, max_value=5))
+    return [draw(st.lists(element_strategy)) for _ in range(num_lists)]
 
 
-def test_grid_products():
-    base_g = Grid(example=[1, 2, 3], example2=["a", "b", "c"])
-    g1 = Grid(example=[1, 2, 3])
-    g2 = Grid(example2=["a", "b", "c"])
-    assert len(list(g1 * g2)) == 9
-    assert list(g1 * g2) == list(base_g)
+@given(het_typed_lists())
+def test_base_construction(lists):
+    g1 = Grid(**{f"example{i}": v for i, v in enumerate(lists)})
+    manifested_list = list(g1)
+    length = len(manifested_list)
+    assert length == prod([len(hlist) for hlist in lists])
+    if length > 0:
+        manifested_list[0].example0 == lists[0][0]
 
 
-def test_zipgrids():
-    g1 = Grid(example=[1, 2, 3])
-    g2 = Grid(example2=["a", "b", "c"])
-    assert len(list(g1 & g2)) == 3
-    assert list(g1 & g2)[0].example == 1
-    assert list(g1 & g2)[0].example2 == "a"
+@given(hom_typed_lists())
+def test_grid_sums(lists):
+    gs = [Grid(example=hlist) for hlist in lists]
+    assert len([e for e in reduce(operator.add, gs[1:], gs[0])]) == sum([len(hlist) for hlist in lists])
+    assert len([e for e in reduce(operator.or_, gs[1:], gs[0])]) == sum([len(hlist) for hlist in lists])
 
 
-def test_filtergrids():
-    g1 = Grid(example=[1, 2, 3])
-    fg = g1.filter(lambda e: cast(int, e.example) % 2 == 0)  # https://github.com/python/mypy/issues/5697#issuecomment-425738017
-    assert len(list(fg)) == 1
-    assert list(fg)[0].example == 2
+@given(het_typed_lists())
+def test_grid_products(lists):
+    gs = [Grid(**{f"example{i}": hlist}) for i, hlist in enumerate(lists)]
+    manifested_list = [e for e in reduce(operator.mul, gs[1:], gs[0])]
+    length = len(manifested_list)
+    assert length == prod([len(hlist) for hlist in lists])
+    if length > 0:
+        rank = len(lists)
+        for i in range(rank):
+            assert getattr(manifested_list[0], f"example{i}") == lists[i][0]
+
+
+@given(het_typed_lists())
+def test_zipgrids(lists):
+    gs = [Grid(**{f"example{i}": hlist}) for i, hlist in enumerate(lists)]
+    manifested_list = [e for e in reduce(operator.and_, gs[1:], gs[0])]
+    length = len(manifested_list)
+    assert length == min([len(hlist) for hlist in lists])
+    if length > 0:
+        rank = len(lists)
+        for i in range(rank):
+            assert getattr(manifested_list[0], f"example{i}") == lists[i][0]
+
+
+@given(st.lists(st.integers()))
+def test_filtergrids(hlist):
+    g1 = Grid(example=hlist)
+    fg = g1.filter(lambda e: cast(int, e.example) % 10 == 0)
+    assert all([i.example % 10 == 0 for i in fg])
 
 
 def test_selectgrids():

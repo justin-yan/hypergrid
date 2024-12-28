@@ -66,6 +66,7 @@ class Grid(IGrid):
         dims = list(args)
         for dim, values in kwargs.items():
             dims.append(Dimension(**{dim: values}))
+        assert len(dims) > 0, "Must provide at least one meaningful dimension"
         assert len(dims) == len(set(dims)), "Dimension names must be unique"
         self.dimensions = dims
         self.grid_element = namedtuple("GridElement", [dim.name for dim in self.dimensions])  # type: ignore[misc]
