@@ -62,6 +62,12 @@ def test_grid_sums(lists):
     assert len([e for e in reduce(operator.or_, gs[1:], gs[0])]) == sum([len(hlist) for hlist in lists])
 
 
+def test_grid_sum_raw():
+    g = Grid(test=[1, 2, 3])
+    rd = ("test", [1, 2, 3])
+    assert len(list(g + rd)) == 6
+
+
 @given(het_typed_lists())
 def test_grid_products(lists):
     gs = [Grid(**{f"example{i}": hlist}) for i, hlist in enumerate(lists)]
