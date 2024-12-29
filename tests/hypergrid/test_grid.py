@@ -1,4 +1,5 @@
 import operator
+from dataclasses import dataclass
 from functools import reduce
 from math import prod
 from typing import cast
@@ -120,3 +121,14 @@ def test_mapgrids():
     assert len(list(mg)) == 3
     assert list(mg)[0].example == 1
     assert list(mg)[0].example2 == 2
+
+
+def test_instantiate():
+    @dataclass
+    class Test:
+        example: int
+
+    g1 = Grid(example=[1, 2, 3])
+    ig = g1.instantiate(test=Test)
+    for ge in ig:
+        assert ge.example == ge.test.example

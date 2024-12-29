@@ -4,6 +4,8 @@ import itertools
 from collections import namedtuple
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, List, Protocol, Type, TypeAlias, runtime_checkable
 
+from hypergrid.util import instantiate_lambda
+
 if TYPE_CHECKING:
     from sklearn.model_selection import ParameterGrid
 
@@ -74,6 +76,9 @@ class IGrid(Protocol):
 
     def map_to(self, **kwargs: Callable[[Any], Any]) -> MapToGrid:
         return MapToGrid(self, **kwargs)
+
+    def instantiate(self, **kwargs: Type) -> MapToGrid:
+        return self.map_to(**{name: instantiate_lambda(cls) for name, cls in kwargs.items()})
 
     def to_sklearn(self) -> ParameterGrid:  # type: ignore[no-any-unimported]
         from hypergrid.ext.sklearn import _grid_to_sklearn
