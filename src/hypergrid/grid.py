@@ -2,20 +2,18 @@ from __future__ import annotations
 
 import itertools
 from collections import namedtuple
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, List, Protocol, Type, TypeAlias, runtime_checkable
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Protocol, Type, runtime_checkable
 
 from hypergrid.util import instantiate_lambda
 
 if TYPE_CHECKING:
     from sklearn.model_selection import ParameterGrid
 
-from hypergrid.dimension import Dimension, IDimension
-
-RawDimension: TypeAlias = tuple[str, Iterable]
+from hypergrid.dimension import Dimension, RawDimension
 
 
 @runtime_checkable
-class IGrid(Protocol):
+class Grid(Protocol):
     grid_element: Type[tuple]
 
     @property
@@ -29,39 +27,39 @@ class IGrid(Protocol):
 
     def __iter__(self) -> Iterator: ...
 
-    def __add__(self, other: IGrid | IDimension | RawDimension) -> SumGrid:
+    def __add__(self, other: Grid | Dimension | RawDimension) -> SumGrid:
         match other:
-            case IGrid():
+            case Grid():
                 return SumGrid(self, other)
-            case IDimension():
-                return SumGrid(self, Grid(other))
-            case (str(), it) if isinstance(it, Iterable):  # RawDimension
-                return SumGrid(self, Grid(Dimension(**{other[0]: other[1]})))
+            case Dimension():
+                return SumGrid(self, HGrid(other))
+            case (str(s), it) if isinstance(it, Iterable):  # RawDimension
+                return SumGrid(self, HGrid(Dimension.make(**{s: it})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
-    def __or__(self, other: IGrid | IDimension | RawDimension) -> SumGrid:
+    def __or__(self, other: Grid | Dimension | RawDimension) -> SumGrid:
         return self.__add__(other)
 
-    def __mul__(self, other: IGrid | IDimension | RawDimension) -> ProductGrid:
+    def __mul__(self, other: Grid | Dimension | RawDimension) -> ProductGrid:
         match other:
-            case IGrid():
+            case Grid():
                 return ProductGrid(self, other)
-            case IDimension():
-                return ProductGrid(self, Grid(other))
-            case (str(), it) if isinstance(it, Iterable):  # RawDimension
-                return ProductGrid(self, Grid(Dimension(**{other[0]: other[1]})))
+            case Dimension():
+                return ProductGrid(self, HGrid(other))
+            case (str(s), it) if isinstance(it, Iterable):  # RawDimension
+                return ProductGrid(self, HGrid(Dimension.make(**{s: it})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
-    def __and__(self, other: IGrid | IDimension | RawDimension) -> ZipGrid:
+    def __and__(self, other: Grid | Dimension | RawDimension) -> ZipGrid:
         match other:
-            case IGrid():
+            case Grid():
                 return ZipGrid(self, other)
-            case IDimension():
-                return ZipGrid(self, Grid(other))
-            case (str(), it) if isinstance(it, Iterable):  # RawDimension
-                return ZipGrid(self, Grid(Dimension(**{other[0]: other[1]})))
+            case Dimension():
+                return ZipGrid(self, HGrid(other))
+            case (str(s), it) if isinstance(it, Iterable):  # RawDimension
+                return ZipGrid(self, HGrid(Dimension.make(**{s: it})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -86,13 +84,13 @@ class IGrid(Protocol):
         return _grid_to_sklearn(self)
 
 
-class Grid(IGrid):
-    dimensions: list[IDimension]
+class HGrid(Grid):
+    dimensions: list[Dimension]
 
-    def __init__(self, *args: IDimension, **kwargs: List[Any]) -> None:
+    def __init__(self, *args: Dimension, **kwargs: Iterable) -> None:
         dims = list(args)
         for dim, values in kwargs.items():
-            dims.append(Dimension(**{dim: values}))
+            dims.append(Dimension.make(**{dim: values}))
         assert len(dims) > 0, "Must provide at least one meaningful dimension"
         assert len(dims) == len(set(dims)), "Dimension names must be unique"
         self.dimensions = dims
@@ -100,15 +98,15 @@ class Grid(IGrid):
 
     def __repr__(self) -> str:
         dim_str = ", ".join([repr(dim) for dim in self.dimensions])
-        return f"Grid({dim_str})"
+        return f"HGrid({dim_str})"
 
     def __iter__(self) -> Iterator:
         for element_tuple in itertools.product(*[dim.__iter__() for dim in self.dimensions]):
             yield self.grid_element(*element_tuple)
 
 
-class SumGrid(IGrid):
-    def __init__(self, grid1: IGrid, grid2: IGrid) -> None:
+class SumGrid(Grid):
+    def __init__(self, grid1: Grid, grid2: Grid) -> None:
         assert set(grid1.dimension_names) == set(grid2.dimension_names)
         self.grid1 = grid1
         self.grid2 = grid2
@@ -122,8 +120,8 @@ class SumGrid(IGrid):
             yield grid_element
 
 
-class ProductGrid(IGrid):
-    def __init__(self, grid1: IGrid, grid2: IGrid) -> None:
+class ProductGrid(Grid):
+    def __init__(self, grid1: Grid, grid2: Grid) -> None:
         assert set(grid1.dimension_names).isdisjoint(set(grid2.dimension_names)), "Dimensions must be exactly matching"
         self.grid1 = grid1
         self.grid2 = grid2
@@ -137,12 +135,12 @@ class ProductGrid(IGrid):
             yield self.grid_element(*(grid_element1 + grid_element2))
 
 
-class ZipGrid(IGrid):
+class ZipGrid(Grid):
     """
     Mimic python "zip" of two iterables.
     """
 
-    def __init__(self, grid1: IGrid, grid2: IGrid) -> None:
+    def __init__(self, grid1: Grid, grid2: Grid) -> None:
         assert set(grid1.dimension_names).isdisjoint(set(grid2.dimension_names)), "Dimensions must be exactly matching"
         self.grid1 = grid1
         self.grid2 = grid2
@@ -156,8 +154,8 @@ class ZipGrid(IGrid):
             yield self.grid_element(*(grid_element1 + grid_element2))
 
 
-class FilterGrid(IGrid):
-    def __init__(self, grid: IGrid, predicate: Callable[[Any], bool]) -> None:
+class FilterGrid(Grid):
+    def __init__(self, grid: Grid, predicate: Callable[[Any], bool]) -> None:
         self.grid = grid
         self.predicate = predicate
         self.grid_element = grid.grid_element
@@ -171,8 +169,8 @@ class FilterGrid(IGrid):
                 yield grid_element
 
 
-class SelectGrid(IGrid):
-    def __init__(self, grid: IGrid, *select_dims: str) -> None:
+class SelectGrid(Grid):
+    def __init__(self, grid: Grid, *select_dims: str) -> None:
         assert len(set(select_dims)) == len(select_dims), "Selected columns must all be unique"
         assert set(select_dims) <= set(grid.dimension_names), "Selected dimensions must be subset of grid dimensions"
         self.grid = grid
@@ -194,8 +192,8 @@ class SelectGrid(IGrid):
             yield self.grid_element(*element_list)
 
 
-class MapGrid(IGrid):
-    def __init__(self, grid: IGrid, **kwargs: Callable[[Any], Any]) -> None:
+class MapGrid(Grid):
+    def __init__(self, grid: Grid, **kwargs: Callable[[Any], Any]) -> None:
         assert len(set(kwargs.keys())) == len(kwargs.keys()), "New columns must all have unique names"
         self.grid = grid
         self.dimension_mapping = kwargs
@@ -211,8 +209,8 @@ class MapGrid(IGrid):
             yield self.grid_element(**new_values)
 
 
-class MapToGrid(IGrid):
-    def __init__(self, grid: IGrid, **kwargs: Callable[[Any], Any]) -> None:
+class MapToGrid(Grid):
+    def __init__(self, grid: Grid, **kwargs: Callable[[Any], Any]) -> None:
         assert len(set(kwargs.keys())) == len(kwargs.keys()), "New columns must all have unique names"
         assert set(grid.dimension_names).isdisjoint(set(kwargs.keys())), "New columns must not have name collisions with old columns"
         self.grid = grid

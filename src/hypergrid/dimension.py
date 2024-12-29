@@ -1,14 +1,16 @@
-from typing import TYPE_CHECKING, Generic, Iterable, Iterator, Protocol, TypeVar, runtime_checkable
+from collections.abc import Collection, Iterable
+from typing import TYPE_CHECKING, Generic, Iterator, Protocol, TypeAlias, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
-    from hypergrid.grid import Grid
+    from hypergrid.grid import HGrid
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
+RawDimension: TypeAlias = tuple[str, Iterable]
 
 
 @runtime_checkable
-class IDimension(Protocol[T_co]):
+class Dimension(Protocol[T_co]):
     name: str
 
     def __repr__(self) -> str: ...
@@ -18,21 +20,48 @@ class IDimension(Protocol[T_co]):
 
     def __iter__(self) -> Iterator[T_co]: ...
 
-    def to_grid(self) -> "Grid":
-        from hypergrid.grid import Grid
+    def to_grid(self) -> "HGrid":
+        from hypergrid.grid import HGrid
 
-        return Grid(self)
+        return HGrid(self)
+
+    @staticmethod
+    def make(**kwargs: Iterable) -> "Dimension":
+        assert len(kwargs) == 1, "Dimensions must be 1-D"
+        retdim: Dimension
+        for name, value in kwargs.items():
+            match value:
+                case Collection():
+                    retdim = FDimension(**{name: value})
+                case _:
+                    retdim = IDimension(**{name: value})
+        return retdim
 
 
-class Dimension(IDimension, Generic[T]):
+class FDimension(Dimension, Generic[T]):
+    def __init__(self, **kwargs: Collection[T]):
+        assert len(kwargs) == 1, "F(ixed)Dimension is 1-d, use Grids for multiple dimensions"
+        for name, values in kwargs.items():
+            assert isinstance(values, Collection), "FDimension assumes finite length, use IDimension for infinite iterable"
+            self.name = name
+            self.values = values
+
+    def __repr__(self) -> str:
+        return f"FDimension({repr(self.values)})"
+
+    def __iter__(self) -> Iterator[T]:
+        yield from self.values
+
+
+class IDimension(Dimension, Generic[T]):
     def __init__(self, **kwargs: Iterable[T]):
-        assert len(kwargs) == 1, "Dimensions are 1-d, use Grids for multiple dimensions"
+        assert len(kwargs) == 1, "I(terable)Dimension is 1-d, use Grids for multiple dimensions"
         for name, values in kwargs.items():
             self.name = name
             self.values = values
 
     def __repr__(self) -> str:
-        return f"Dimension({repr(self.values)})"
+        return f"IDimension({repr(self.values)})"
 
     def __iter__(self) -> Iterator[T]:
         yield from self.values
