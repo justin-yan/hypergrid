@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import itertools
 from collections import namedtuple
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Protocol, Type, runtime_checkable
+from collections.abc import Collection
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Protocol, Type, runtime_checkable
 
 from hypergrid.util import instantiate_lambda
 
 if TYPE_CHECKING:
     from sklearn.model_selection import ParameterGrid
 
-from hypergrid.dimension import Dimension, RawDimension
+from hypergrid.dimension import Dimension, FixedDimension, RawDimension
 
 
 @runtime_checkable
@@ -33,8 +34,8 @@ class Grid(Protocol):
                 return SumGrid(self, other)
             case Dimension():
                 return SumGrid(self, HGrid(other))
-            case (str(s), it) if isinstance(it, Iterable):  # RawDimension
-                return SumGrid(self, HGrid(Dimension.make(**{s: it})))
+            case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
+                return SumGrid(self, HGrid(FixedDimension(**{s: coll})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -47,8 +48,8 @@ class Grid(Protocol):
                 return ProductGrid(self, other)
             case Dimension():
                 return ProductGrid(self, HGrid(other))
-            case (str(s), it) if isinstance(it, Iterable):  # RawDimension
-                return ProductGrid(self, HGrid(Dimension.make(**{s: it})))
+            case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
+                return ProductGrid(self, HGrid(FixedDimension(**{s: coll})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -58,8 +59,8 @@ class Grid(Protocol):
                 return ZipGrid(self, other)
             case Dimension():
                 return ZipGrid(self, HGrid(other))
-            case (str(s), it) if isinstance(it, Iterable):  # RawDimension
-                return ZipGrid(self, HGrid(Dimension.make(**{s: it})))
+            case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
+                return ZipGrid(self, HGrid(FixedDimension(**{s: coll})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -87,10 +88,10 @@ class Grid(Protocol):
 class HGrid(Grid):
     dimensions: list[Dimension]
 
-    def __init__(self, *args: Dimension, **kwargs: Iterable) -> None:
+    def __init__(self, *args: Dimension, **kwargs: Collection) -> None:
         dims = list(args)
         for dim, values in kwargs.items():
-            dims.append(Dimension.make(**{dim: values}))
+            dims.append(FixedDimension(**{dim: values}))
         assert len(dims) > 0, "Must provide at least one meaningful dimension"
         assert len(dims) == len(set(dims)), "Dimension names must be unique"
         self.dimensions = dims

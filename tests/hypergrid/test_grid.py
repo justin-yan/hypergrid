@@ -1,4 +1,3 @@
-import itertools
 import operator
 from dataclasses import dataclass
 from functools import reduce
@@ -10,7 +9,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.strategies import DrawFn, composite
 
-from hypergrid.dimension import FDimension, IDimension
+from hypergrid.dimension import FixedDimension
 from hypergrid.grid import HGrid
 
 
@@ -58,11 +57,6 @@ def test_hgrid_construction(lists):
         manifested_list[0].example0 == lists[0][0]
 
 
-def test_hgrid_iterator_construction():
-    g = HGrid(test=itertools.count(start=0, step=1))
-    assert isinstance(g.dimensions[0], IDimension)
-
-
 @given(hom_typed_lists())
 def test_grid_sums(lists):
     gs = [HGrid(example=hlist) for hlist in lists]
@@ -75,11 +69,7 @@ def test_grid_sum_raw():
     rd = ("test", [1, 2, 3])
     s = g + rd
     assert len(list(s)) == 6
-    assert isinstance(s.grid2.dimensions[0], FDimension)
-
-    rd2 = ("test", itertools.count(start=0, step=1))
-    s2 = g + rd2
-    assert isinstance(s2.grid2.dimensions[0], IDimension)
+    assert isinstance(s.grid2.dimensions[0], FixedDimension)
 
 
 @given(het_typed_lists())

@@ -1,12 +1,13 @@
-from collections.abc import Collection, Iterable
-from typing import TYPE_CHECKING, Generic, Iterator, Protocol, TypeAlias, TypeVar, runtime_checkable
+import random
+from collections.abc import Callable, Collection
+from typing import TYPE_CHECKING, Generic, Iterator, Protocol, Self, TypeAlias, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
     from hypergrid.grid import HGrid
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
-RawDimension: TypeAlias = tuple[str, Iterable]
+RawDimension: TypeAlias = tuple[str, Collection]
 
 
 @runtime_checkable
@@ -20,48 +21,49 @@ class Dimension(Protocol[T_co]):
 
     def __iter__(self) -> Iterator[T_co]: ...
 
+    def sample(self) -> T_co: ...
+
     def to_grid(self) -> "HGrid":
         from hypergrid.grid import HGrid
 
         return HGrid(self)
 
-    @staticmethod
-    def make(**kwargs: Iterable) -> "Dimension":
-        assert len(kwargs) == 1, "Dimensions must be 1-D"
-        retdim: Dimension
-        for name, value in kwargs.items():
-            match value:
-                case Collection():
-                    retdim = FDimension(**{name: value})
-                case _:
-                    retdim = IDimension(**{name: value})
-        return retdim
 
+class FixedDimension(Dimension, Generic[T]):
+    _sampling_strategy: Callable[..., T] = random.choice
 
-class FDimension(Dimension, Generic[T]):
     def __init__(self, **kwargs: Collection[T]):
-        assert len(kwargs) == 1, "F(ixed)Dimension is 1-d, use Grids for multiple dimensions"
+        assert len(kwargs) == 1, "FixedDimension is 1-d, use Grids for multiple dimensions"
         for name, values in kwargs.items():
-            assert isinstance(values, Collection), "FDimension assumes finite length, use IDimension for infinite iterable"
+            assert isinstance(values, Collection), "FixedDimension assumes finite length"
             self.name = name
             self.values = values
 
     def __repr__(self) -> str:
-        return f"FDimension({repr(self.values)})"
+        return f"FixedDimension({repr(self.values)})"
 
     def __iter__(self) -> Iterator[T]:
         yield from self.values
 
+    def sample(self) -> T:
+        return self._sampling_strategy(self.values)
 
-class IDimension(Dimension, Generic[T]):
-    def __init__(self, **kwargs: Iterable[T]):
-        assert len(kwargs) == 1, "I(terable)Dimension is 1-d, use Grids for multiple dimensions"
-        for name, values in kwargs.items():
-            self.name = name
-            self.values = values
+    def with_sampling_strategy(self, strategy: Callable[..., T]) -> Self:
+        self._sampling_strategy = strategy
+        return self
 
-    def __repr__(self) -> str:
-        return f"IDimension({repr(self.values)})"
+
+@runtime_checkable
+class DistributionDimension(Dimension, Protocol[T]):
+    _itermax: int = 500
 
     def __iter__(self) -> Iterator[T]:
-        yield from self.values
+        for _ in range(self._itermax):
+            yield self.sample()
+
+    def sample_n(self, n: int) -> FixedDimension[T]:
+        return FixedDimension(**{self.name: [self.sample() for _ in range(n)]})
+
+    def with_itermax(self, n: int) -> Self:
+        self._itermax = n
+        return self
