@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import itertools
 from collections import namedtuple
-from typing import Any, Callable, Iterable, Iterator, List, Protocol, Type, TypeAlias, runtime_checkable
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, List, Protocol, Type, TypeAlias, runtime_checkable
+
+if TYPE_CHECKING:
+    from sklearn.model_selection import ParameterGrid
 
 from hypergrid.dimension import Dimension, IDimension
 
@@ -71,6 +74,11 @@ class IGrid(Protocol):
 
     def map_to(self, **kwargs: Callable[[Any], Any]) -> MapToGrid:
         return MapToGrid(self, **kwargs)
+
+    def to_sklearn(self) -> ParameterGrid:  # type: ignore[no-any-unimported]
+        from hypergrid.ext.sklearn import _grid_to_sklearn
+
+        return _grid_to_sklearn(self)
 
 
 class Grid(IGrid):

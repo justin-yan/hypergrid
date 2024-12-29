@@ -99,6 +99,20 @@ warn_unused_ignores = true
 ### Custom Directives Section Begin
 ######
 
+
+[[tool.mypy.overrides]]
+module = [
+    "sklearn.*",
+]
+ignore_errors = true
+ignore_missing_imports = true
+
+
+[project.optional-dependencies]
+sklearn = [
+    "scikit-learn<2",
+]
+
 ######
 ### Custom Directives Section End
 ######
