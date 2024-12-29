@@ -3,7 +3,7 @@ from collections.abc import Callable, Collection
 from typing import TYPE_CHECKING, Generic, Iterator, Protocol, Self, TypeAlias, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
-    from hypergrid.grid import HGrid
+    from hypergrid.grid import HyperGrid
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
@@ -23,10 +23,10 @@ class Dimension(Protocol[T_co]):
 
     def sample(self) -> T_co: ...
 
-    def to_grid(self) -> "HGrid":
-        from hypergrid.grid import HGrid
+    def to_grid(self) -> "HyperGrid":
+        from hypergrid.grid import HyperGrid
 
-        return HGrid(self)
+        return HyperGrid(self)
 
 
 class FixedDimension(Dimension, Generic[T]):

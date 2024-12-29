@@ -33,9 +33,9 @@ class Grid(Protocol):
             case Grid():
                 return SumGrid(self, other)
             case Dimension():
-                return SumGrid(self, HGrid(other))
+                return SumGrid(self, HyperGrid(other))
             case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
-                return SumGrid(self, HGrid(FixedDimension(**{s: coll})))
+                return SumGrid(self, HyperGrid(FixedDimension(**{s: coll})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -47,9 +47,9 @@ class Grid(Protocol):
             case Grid():
                 return ProductGrid(self, other)
             case Dimension():
-                return ProductGrid(self, HGrid(other))
+                return ProductGrid(self, HyperGrid(other))
             case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
-                return ProductGrid(self, HGrid(FixedDimension(**{s: coll})))
+                return ProductGrid(self, HyperGrid(FixedDimension(**{s: coll})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -58,9 +58,9 @@ class Grid(Protocol):
             case Grid():
                 return ZipGrid(self, other)
             case Dimension():
-                return ZipGrid(self, HGrid(other))
+                return ZipGrid(self, HyperGrid(other))
             case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
-                return ZipGrid(self, HGrid(FixedDimension(**{s: coll})))
+                return ZipGrid(self, HyperGrid(FixedDimension(**{s: coll})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -85,7 +85,7 @@ class Grid(Protocol):
         return _grid_to_sklearn(self)
 
 
-class HGrid(Grid):
+class HyperGrid(Grid):
     dimensions: list[Dimension]
 
     def __init__(self, *args: Dimension, **kwargs: Collection) -> None:
@@ -99,7 +99,7 @@ class HGrid(Grid):
 
     def __repr__(self) -> str:
         dim_str = ", ".join([repr(dim) for dim in self.dimensions])
-        return f"HGrid({dim_str})"
+        return f"HyperGrid({dim_str})"
 
     def __iter__(self) -> Iterator:
         for element_tuple in itertools.product(*[dim.__iter__() for dim in self.dimensions]):
