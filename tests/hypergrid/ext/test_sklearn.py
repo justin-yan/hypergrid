@@ -1,4 +1,4 @@
-from hypergrid.dsl import *
+from hypergrid.dsl import Grid
 
 
 def test_basic_grid_sklearn_conversion():
