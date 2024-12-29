@@ -1,0 +1,8 @@
+# This is a minimal Pipfile that allows the use of `pipenv shell` without causing any file modifications.
+# We don't actually *use* pipenv, but in the absence of `uv` providing a convenience method for activating
+#   the virtualenv it produces, we use pipenv to implement the `just shell` command in order to have a
+#   convenient hook to activate the uv-managed venv.
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"

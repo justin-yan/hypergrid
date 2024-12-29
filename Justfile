@@ -9,8 +9,8 @@ TEST_FOLDER:='tests'
     just --list
 
 @init:
-    [ -f uv.lock ] && echo "Lockfile already exists" || uv lock
-    uv sync
+    [ -f uv.lock ] && echo "Lockfile already exists" || just lock
+    just sync
 
 @build:
     uv build
@@ -60,10 +60,14 @@ virt SUBCOMMAND FORCE="noforce":
     uv lock
 
 @sync:
-    uv sync
+    uv sync --all-extras
 
 @repl:
     uv run python
+
+@shell:
+    #!/usr/bin/env bash
+    pipenv shell
 
 @run +COMMAND:
     uv run {{COMMAND}}
