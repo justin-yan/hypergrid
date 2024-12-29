@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 from hypothesis.strategies import DrawFn, composite
 
 from hypergrid.dimension import FixedDimension
-from hypergrid.grid import HGrid
+from hypergrid.grid import HyperGrid
 
 
 @composite
@@ -49,7 +49,7 @@ def hom_typed_lists(draw: DrawFn):
 
 @given(het_typed_lists())
 def test_hgrid_construction(lists):
-    g1 = HGrid(**{f"example{i}": v for i, v in enumerate(lists)})
+    g1 = HyperGrid(**{f"example{i}": v for i, v in enumerate(lists)})
     manifested_list = list(g1)
     length = len(manifested_list)
     assert length == prod([len(hlist) for hlist in lists])
@@ -59,13 +59,13 @@ def test_hgrid_construction(lists):
 
 @given(hom_typed_lists())
 def test_grid_sums(lists):
-    gs = [HGrid(example=hlist) for hlist in lists]
+    gs = [HyperGrid(example=hlist) for hlist in lists]
     assert len([e for e in reduce(operator.add, gs[1:], gs[0])]) == sum([len(hlist) for hlist in lists])
     assert len([e for e in reduce(operator.or_, gs[1:], gs[0])]) == sum([len(hlist) for hlist in lists])
 
 
 def test_grid_sum_raw():
-    g = HGrid(test=[1, 2, 3])
+    g = HyperGrid(test=[1, 2, 3])
     rd = ("test", [1, 2, 3])
     s = g + rd
     assert len(list(s)) == 6
@@ -74,7 +74,7 @@ def test_grid_sum_raw():
 
 @given(het_typed_lists())
 def test_grid_products(lists):
-    gs = [HGrid(**{f"example{i}": hlist}) for i, hlist in enumerate(lists)]
+    gs = [HyperGrid(**{f"example{i}": hlist}) for i, hlist in enumerate(lists)]
     manifested_list = [e for e in reduce(operator.mul, gs[1:], gs[0])]
     length = len(manifested_list)
     assert length == prod([len(hlist) for hlist in lists])
@@ -86,7 +86,7 @@ def test_grid_products(lists):
 
 @given(het_typed_lists())
 def test_zipgrids(lists):
-    gs = [HGrid(**{f"example{i}": hlist}) for i, hlist in enumerate(lists)]
+    gs = [HyperGrid(**{f"example{i}": hlist}) for i, hlist in enumerate(lists)]
     manifested_list = [e for e in reduce(operator.and_, gs[1:], gs[0])]
     length = len(manifested_list)
     assert length == min([len(hlist) for hlist in lists])
@@ -98,13 +98,13 @@ def test_zipgrids(lists):
 
 @given(st.lists(st.integers()))
 def test_filtergrids(hlist):
-    g1 = HGrid(example=hlist)
+    g1 = HyperGrid(example=hlist)
     fg = g1.filter(lambda e: cast(int, e.example) % 10 == 0)
     assert all([i.example % 10 == 0 for i in fg])
 
 
 def test_selectgrids():
-    g1 = HGrid(example=[1, 2, 3], example2=[2, 4, 6])
+    g1 = HyperGrid(example=[1, 2, 3], example2=[2, 4, 6])
     selected = g1.select("example2")
     print([i for i in selected])
     assert len(list(selected)) == 9
@@ -112,14 +112,14 @@ def test_selectgrids():
 
 
 def test_mapgrids():
-    g1 = HGrid(example=[1, 2, 3])
+    g1 = HyperGrid(example=[1, 2, 3])
     mg = g1.map(example2=lambda e: e.example * 2)
     assert len(list(mg)) == 3
     assert list(mg)[0].example2 == 2
     with pytest.raises(AttributeError):
         list(mg)[0].example
 
-    g1 = HGrid(example=[1, 2, 3])
+    g1 = HyperGrid(example=[1, 2, 3])
     mg = g1.map_to(example2=lambda e: e.example * 2)
     assert len(list(mg)) == 3
     assert list(mg)[0].example == 1
@@ -131,7 +131,7 @@ def test_instantiate():
     class Test:
         example: int
 
-    g1 = HGrid(example=[1, 2, 3])
+    g1 = HyperGrid(example=[1, 2, 3])
     ig = g1.instantiate(test=Test)
     for ge in ig:
         assert ge.example == ge.test.example
