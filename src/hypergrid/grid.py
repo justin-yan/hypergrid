@@ -4,8 +4,9 @@ import itertools
 import random
 from collections import namedtuple
 from collections.abc import Collection
+from functools import cached_property
 from math import prod
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Protocol, Type, runtime_checkable
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Optional, Protocol, Type, runtime_checkable
 
 from hypergrid.gen.iterable import HIterable
 from hypergrid.util import instantiate_lambda
@@ -139,8 +140,7 @@ class SumGrid(Grid):
             yield grid_element
 
     def sample(self) -> tuple:
-        subgrid = random.choice([self.grid1, self.grid2])
-        return subgrid.sample()
+        return random.choice([ge for ge in self])
 
 
 class ProductGrid(Grid):
@@ -188,14 +188,12 @@ class ZipGrid(Grid):
             yield self.grid_element(*(grid_element1 + grid_element2))
 
     def sample(self) -> tuple:
-        # TODO: disjoint sampling results in bug when one grid is longer than others, resulting in possible samples
-        #   that don't come from the joint distribution provided by `__iter__`.
-        ge1 = self.grid1.sample()
-        ge2 = self.grid2.sample()
-        return self.grid_element(*(ge1 + ge2))
+        return random.choice([ge for ge in self])
 
 
 class FilterGrid(Grid):
+    _iter_cache: Optional[list] = None
+
     def __init__(self, grid: Grid, predicate: Callable[[Any], bool]) -> None:
         self.grid = grid
         self.predicate = predicate
@@ -205,7 +203,10 @@ class FilterGrid(Grid):
         return f"FilterGrid({repr(self.grid)}, {self.predicate.__name__})"
 
     def __len__(self) -> int:
-        # TODO: Is there any way around materializing the entire grid?
+        return self._len
+
+    @cached_property
+    def _len(self) -> int:
         return len([x for x in self])
 
     def __iter__(self) -> Iterator:
@@ -214,13 +215,12 @@ class FilterGrid(Grid):
                 yield grid_element
 
     def sample(self) -> tuple:
-        # TODO: perhaps a better approach would be to pre-validate the filter on a materialized grid?
-        counter = 0
-        while counter < 1000:
-            ret = self.grid.sample()
-            if self.predicate(ret):
-                return ret
-        raise Exception("1000 samples yielded no filter passes")
+        if self._iter_cache is not None:
+            sublist = self._iter_cache
+        else:
+            sublist = [ge for ge in self]
+            self._iter_cache = sublist
+        return random.choice(sublist)
 
 
 class SelectGrid(Grid):
@@ -239,24 +239,20 @@ class SelectGrid(Grid):
 
     def __iter__(self) -> Iterator:
         for grid_element in self.grid:
-            element_list = []
-            for dim_name in self.dimension_names:
-                try:
-                    selected_value = getattr(grid_element, dim_name)
-                except AttributeError:
-                    selected_value = None
-                element_list.append(selected_value)
-            yield self.grid_element(*element_list)
+            yield self.grid_element(*self._process_single(grid_element))
 
     def sample(self) -> tuple:
+        return self.grid_element(*self._process_single(self.grid.sample()))
+
+    def _process_single(self, ge: tuple) -> list:
         element_list = []
         for dim_name in self.dimension_names:
             try:
-                selected_value = getattr(self.grid.sample(), dim_name)
+                selected_value = getattr(ge, dim_name)
             except AttributeError:
                 selected_value = None
             element_list.append(selected_value)
-        return self.grid_element(*element_list)
+        return element_list
 
 
 class MapGrid(Grid):
@@ -275,12 +271,13 @@ class MapGrid(Grid):
 
     def __iter__(self) -> Iterator:
         for grid_element in self.grid:
-            new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
-            yield self.grid_element(**new_values)
+            yield self.grid_element(**self._process_single(grid_element))
 
     def sample(self) -> tuple:
-        new_values = {dim_name: func(self.grid.sample()) for dim_name, func in self.dimension_mapping.items()}
-        return self.grid_element(**new_values)
+        return self.grid_element(**self._process_single(self.grid.sample()))
+
+    def _process_single(self, ge: tuple) -> dict:
+        return {dim_name: func(ge) for dim_name, func in self.dimension_mapping.items()}
 
 
 class MapToGrid(Grid):
@@ -300,10 +297,11 @@ class MapToGrid(Grid):
 
     def __iter__(self) -> Iterator:
         for grid_element in self.grid:
-            new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
-            yield self.grid_element(**(grid_element._asdict() | new_values))
+            yield self.grid_element(**self._process_single(grid_element))
 
     def sample(self) -> tuple:
-        grid_element = self.grid.sample()
-        new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
-        return self.grid_element(**(grid_element._asdict() | new_values))  # type: ignore
+        return self.grid_element(**self._process_single(self.grid.sample()))
+
+    def _process_single(self, ge: tuple) -> dict:
+        new_values = {dim_name: func(ge) for dim_name, func in self.dimension_mapping.items()}
+        return ge._asdict() | new_values  # type: ignore
