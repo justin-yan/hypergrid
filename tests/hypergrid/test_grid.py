@@ -135,3 +135,32 @@ def test_instantiate():
     ig = g1.instantiate(test=Test)
     for ge in ig:
         assert ge.example == ge.test.example
+
+
+def test_sampling():
+    g = HyperGrid(example=[1, 2, 3])
+    g = g + ("example", [4, 5, 6])
+    assert all([1 <= g.sample().example <= 6 for _ in range(100)])
+    g = HyperGrid(example=[1, 2, 3])
+    g = g * ("test2", ["a", "b", "c"])
+    assert all([1 <= (sample := g.sample()).example <= 3 and sample.test2 in ["a", "b", "c"] for _ in range(100)])
+    g = HyperGrid(example=range(20))
+    g = g.filter(lambda x: x.example % 2 == 0)
+    assert all([g.sample().example % 2 == 0 for _ in range(100)])
+    g = HyperGrid(example=range(20), example2=range(10))
+    g = g.select("example2")
+    assert all([0 <= g.sample().example2 < 10 for _ in range(100)])
+    g = HyperGrid(example=range(20))
+    g = g.map(test=lambda x: x.example * 2)
+    assert all([g.sample().test % 2 == 0 for _ in range(100)])
+    g = HyperGrid(example=range(20))
+    g = g.map_to(test=lambda x: x.example * 2)
+    assert all([g.sample().test % 2 == 0 for _ in range(100)])
+
+
+@pytest.mark.xfail
+def test_zip_sampling():
+    """Known bug with joint sampling from ZipGrid when dimensions are of mismatched lengths"""
+    g = HyperGrid(example=[1, 2, 3])
+    g = g & ("test3", range(100))
+    assert all([1 <= (sample := g.sample()).example <= 3 and 0 <= sample.test3 <= 2 for _ in range(100)])

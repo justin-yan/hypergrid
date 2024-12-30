@@ -1,6 +1,4 @@
-from typing import Callable, Type, TypeVar
-
-T = TypeVar("T")
+from typing import Callable, Type
 
 
 def instantiate_lambda(cls: Type) -> Callable:
