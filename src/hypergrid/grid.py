@@ -4,6 +4,7 @@ import itertools
 import random
 from collections import namedtuple
 from collections.abc import Collection
+from math import prod
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Protocol, Type, runtime_checkable
 
 from hypergrid.util import instantiate_lambda
@@ -26,6 +27,8 @@ class Grid(Protocol):
 
     def __str__(self) -> str:
         return self.__repr__()
+
+    def __len__(self) -> int: ...
 
     def __iter__(self) -> Iterator: ...
 
@@ -104,6 +107,9 @@ class HyperGrid(Grid):
         dim_str = ", ".join([repr(dim) for dim in self.dimensions])
         return f"HyperGrid({dim_str})"
 
+    def __len__(self) -> int:
+        return prod([len(dim) for dim in self.dimensions])
+
     def __iter__(self) -> Iterator:
         for element_tuple in itertools.product(*[dim.__iter__() for dim in self.dimensions]):
             yield self.grid_element(*element_tuple)
@@ -121,6 +127,9 @@ class SumGrid(Grid):
 
     def __repr__(self) -> str:
         return f"SumGrid({repr(self.grid1)}, {repr(self.grid2)})"
+
+    def __len__(self) -> int:
+        return len(self.grid1) + len(self.grid2)
 
     def __iter__(self) -> Iterator:
         for grid_element in itertools.chain(self.grid1, self.grid2):
@@ -140,6 +149,9 @@ class ProductGrid(Grid):
 
     def __repr__(self) -> str:
         return f"ProductGrid({repr(self.grid1)}, {repr(self.grid2)})"
+
+    def __len__(self) -> int:
+        return len(self.grid1) * len(self.grid2)
 
     def __iter__(self) -> Iterator:
         for grid_element1, grid_element2 in itertools.product(self.grid1, self.grid2):
@@ -165,6 +177,9 @@ class ZipGrid(Grid):
     def __repr__(self) -> str:
         return f"ZipGrid({repr(self.grid1)}, {repr(self.grid2)})"
 
+    def __len__(self) -> int:
+        return min(len(self.grid1), len(self.grid2))
+
     def __iter__(self) -> Iterator:
         for grid_element1, grid_element2 in zip(self.grid1, self.grid2):
             yield self.grid_element(*(grid_element1 + grid_element2))
@@ -185,6 +200,10 @@ class FilterGrid(Grid):
 
     def __repr__(self) -> str:
         return f"FilterGrid({repr(self.grid)}, {self.predicate.__name__})"
+
+    def __len__(self) -> int:
+        # TODO: Is there any way around materializing the entire grid?
+        return len([x for x in self])
 
     def __iter__(self) -> Iterator:
         for grid_element in self.grid:
@@ -211,6 +230,9 @@ class SelectGrid(Grid):
 
     def __repr__(self) -> str:
         return f"SelectGrid({repr(self.grid)}, {repr(self.select_dims)})"
+
+    def __len__(self) -> int:
+        return len(self.grid)
 
     def __iter__(self) -> Iterator:
         for grid_element in self.grid:
@@ -245,6 +267,9 @@ class MapGrid(Grid):
         mappings_str = ", ".join([f"{dim_name}={func.__name__}" for dim_name, func in self.dimension_mapping.items()])
         return f"MapGrid({repr(self.grid)}, {mappings_str})"
 
+    def __len__(self) -> int:
+        return len(self.grid)
+
     def __iter__(self) -> Iterator:
         for grid_element in self.grid:
             new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
@@ -266,6 +291,9 @@ class MapToGrid(Grid):
     def __repr__(self) -> str:
         mappings_str = ", ".join([f"{dim_name}={func.__name__}" for dim_name, func in self.dimension_mapping.items()])
         return f"MapToGrid({repr(self.grid)}, {mappings_str})"
+
+    def __len__(self) -> int:
+        return len(self.grid)
 
     def __iter__(self) -> Iterator:
         for grid_element in self.grid:

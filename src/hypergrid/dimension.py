@@ -19,6 +19,8 @@ class Dimension(Protocol[T_co]):
     def __str__(self) -> str:
         return self.__repr__()
 
+    def __len__(self) -> int: ...
+
     def __iter__(self) -> Iterator[T_co]: ...
 
     def sample(self) -> T_co: ...
@@ -42,6 +44,9 @@ class FixedDimension(Dimension, Generic[T]):
     def __repr__(self) -> str:
         return f"FixedDimension({repr(self.values)})"
 
+    def __len__(self) -> int:
+        return len(self.values)
+
     def __iter__(self) -> Iterator[T]:
         yield from self.values
 
@@ -56,6 +61,9 @@ class FixedDimension(Dimension, Generic[T]):
 @runtime_checkable
 class DistributionDimension(Dimension, Protocol[T]):
     _itermax: int = 500
+
+    def __len__(self) -> int:
+        return self._itermax
 
     def __iter__(self) -> Iterator[T]:
         for _ in range(self._itermax):
