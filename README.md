@@ -1,5 +1,3 @@
-from hypergrid.dimension import Dimension
-
 # hypergrid
 
 Hypergrid enables concise declaration and manipulation of parameter grid spaces, with an aim towards use cases such as hyperparameter tuning or defining large batch jobs.
