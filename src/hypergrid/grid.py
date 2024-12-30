@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import random
 from collections import namedtuple
 from collections.abc import Collection
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Protocol, Type, runtime_checkable
@@ -27,6 +28,8 @@ class Grid(Protocol):
         return self.__repr__()
 
     def __iter__(self) -> Iterator: ...
+
+    def sample(self) -> tuple: ...
 
     def __add__(self, other: Grid | Dimension | RawDimension) -> SumGrid:
         match other:
@@ -105,6 +108,9 @@ class HyperGrid(Grid):
         for element_tuple in itertools.product(*[dim.__iter__() for dim in self.dimensions]):
             yield self.grid_element(*element_tuple)
 
+    def sample(self) -> tuple:
+        return self.grid_element(*tuple([dim.sample() for dim in self.dimensions]))
+
 
 class SumGrid(Grid):
     def __init__(self, grid1: Grid, grid2: Grid) -> None:
@@ -120,6 +126,10 @@ class SumGrid(Grid):
         for grid_element in itertools.chain(self.grid1, self.grid2):
             yield grid_element
 
+    def sample(self) -> tuple:
+        subgrid = random.choice([self.grid1, self.grid2])
+        return subgrid.sample()
+
 
 class ProductGrid(Grid):
     def __init__(self, grid1: Grid, grid2: Grid) -> None:
@@ -134,6 +144,11 @@ class ProductGrid(Grid):
     def __iter__(self) -> Iterator:
         for grid_element1, grid_element2 in itertools.product(self.grid1, self.grid2):
             yield self.grid_element(*(grid_element1 + grid_element2))
+
+    def sample(self) -> tuple:
+        ge1 = self.grid1.sample()
+        ge2 = self.grid2.sample()
+        return self.grid_element(*(ge1 + ge2))
 
 
 class ZipGrid(Grid):
@@ -154,6 +169,13 @@ class ZipGrid(Grid):
         for grid_element1, grid_element2 in zip(self.grid1, self.grid2):
             yield self.grid_element(*(grid_element1 + grid_element2))
 
+    def sample(self) -> tuple:
+        # TODO: disjoint sampling results in bug when one grid is longer than others, resulting in possible samples
+        #   that don't come from the joint distribution provided by `__iter__`.
+        ge1 = self.grid1.sample()
+        ge2 = self.grid2.sample()
+        return self.grid_element(*(ge1 + ge2))
+
 
 class FilterGrid(Grid):
     def __init__(self, grid: Grid, predicate: Callable[[Any], bool]) -> None:
@@ -168,6 +190,15 @@ class FilterGrid(Grid):
         for grid_element in self.grid:
             if self.predicate(grid_element):
                 yield grid_element
+
+    def sample(self) -> tuple:
+        # TODO: perhaps a better approach would be to pre-validate the filter on a materialized grid?
+        counter = 0
+        while counter < 1000:
+            ret = self.grid.sample()
+            if self.predicate(ret):
+                return ret
+        raise Exception("1000 samples yielded no filter passes")
 
 
 class SelectGrid(Grid):
@@ -192,6 +223,16 @@ class SelectGrid(Grid):
                 element_list.append(selected_value)
             yield self.grid_element(*element_list)
 
+    def sample(self) -> tuple:
+        element_list = []
+        for dim_name in self.dimension_names:
+            try:
+                selected_value = getattr(self.grid.sample(), dim_name)
+            except AttributeError:
+                selected_value = None
+            element_list.append(selected_value)
+        return self.grid_element(*element_list)
+
 
 class MapGrid(Grid):
     def __init__(self, grid: Grid, **kwargs: Callable[[Any], Any]) -> None:
@@ -208,6 +249,10 @@ class MapGrid(Grid):
         for grid_element in self.grid:
             new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
             yield self.grid_element(**new_values)
+
+    def sample(self) -> tuple:
+        new_values = {dim_name: func(self.grid.sample()) for dim_name, func in self.dimension_mapping.items()}
+        return self.grid_element(**new_values)
 
 
 class MapToGrid(Grid):
@@ -226,3 +271,8 @@ class MapToGrid(Grid):
         for grid_element in self.grid:
             new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
             yield self.grid_element(**(grid_element._asdict() | new_values))
+
+    def sample(self) -> tuple:
+        grid_element = self.grid.sample()
+        new_values = {dim_name: func(grid_element) for dim_name, func in self.dimension_mapping.items()}
+        return self.grid_element(**(grid_element._asdict() | new_values))  # type: ignore
