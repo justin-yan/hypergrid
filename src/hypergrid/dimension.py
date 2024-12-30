@@ -1,5 +1,5 @@
 import random
-from collections.abc import Callable, Collection
+from collections.abc import Collection
 from typing import TYPE_CHECKING, Generic, Iterator, Self, TypeAlias, TypeVar
 
 if TYPE_CHECKING:
@@ -11,7 +11,6 @@ RawDimension: TypeAlias = tuple[str, Collection]
 
 class Dimension(Generic[T]):
     name: str
-    _sampling_strategy: Callable[..., T] = random.choice
 
     def __init__(self, **kwargs: Collection[T]):
         assert len(kwargs) == 1, "Dimension is 1-d, use Grids for multiple dimensions"
@@ -33,11 +32,7 @@ class Dimension(Generic[T]):
         yield from self.values
 
     def sample(self) -> T:
-        return self._sampling_strategy(self.values)
-
-    def with_sampling_strategy(self, strategy: Callable[..., T]) -> Self:
-        self._sampling_strategy = strategy
-        return self
+        return random.choice(self.values)  # type: ignore
 
     def with_name(self, name: str) -> Self:
         self.name = name

@@ -157,11 +157,6 @@ def test_sampling():
     g = HyperGrid(example=range(20))
     g = g.map_to(test=lambda x: x.example * 2)
     assert all([g.sample().test % 2 == 0 for _ in range(100)])
-
-
-@pytest.mark.xfail
-def test_zip_sampling():
-    """Known bug with joint sampling from ZipGrid when dimensions are of mismatched lengths"""
     g = HyperGrid(example=[1, 2, 3])
     g = g & ("test3", range(100))
     assert all([1 <= (sample := g.sample()).example <= 3 and 0 <= sample.test3 <= 2 for _ in range(100)])

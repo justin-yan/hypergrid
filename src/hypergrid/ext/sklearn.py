@@ -23,7 +23,6 @@ def _grid_to_sklearn_recursive_helper(grid: Grid) -> dict:
     """
     match grid:
         case HyperGrid():
-            # TODO: will OOM on infinite iterators
             return {dim.name: [v for v in dim] for dim in grid.dimensions}
         case ProductGrid():
             d1 = _grid_to_sklearn_recursive_helper(grid.grid1)
