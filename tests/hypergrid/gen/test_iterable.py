@@ -1,12 +1,12 @@
 import math
 from itertools import islice
 
-from hypergrid.gen.iterable import ExponentialSequence
+from hypergrid.gen.iterable import ExponentialStep
 from hypergrid.grid import HyperGrid
 
 
 def test_iterable_zip():
-    es = ExponentialSequence(start=1, step=1.1)
+    es = ExponentialStep(start=1, step=1.1)
     g = HyperGrid(test=range(100))
     g = g & es
     manifested_list = [ge for ge in g]
@@ -19,7 +19,7 @@ def test_iterable_zip():
 
 
 def test_exponential_sequence():
-    es = ExponentialSequence(start=1, step=1.1)
+    es = ExponentialStep(start=1, step=1.1)
 
     assert all([math.isclose(p[0], p[1]) for p in zip(islice(es, 5), [1, 1.1, 1.21, 1.331, 1.4641])])
     assert es.take(5).name == "anonymous"

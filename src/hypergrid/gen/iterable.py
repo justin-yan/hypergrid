@@ -20,7 +20,7 @@ class HIterable(Protocol[T]):
         return self
 
 
-class ExponentialSequence(HIterable):
+class ExponentialStep(HIterable):
     def __init__(self, start: float, step: float) -> None:
         self.start = start
         self.step = step
