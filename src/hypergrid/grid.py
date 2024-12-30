@@ -34,6 +34,9 @@ class Grid(Protocol):
 
     def __iter__(self) -> Iterator: ...
 
+    def take(self, n: int) -> list:
+        return [i for i in itertools.islice(self, n)]
+
     def sample(self) -> tuple: ...
 
     def __add__(self, other: Grid | Dimension | RawDimension) -> SumGrid:
