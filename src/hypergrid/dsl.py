@@ -1,4 +1,4 @@
-from hypergrid.dimension import Dimension, FixedDimension
+from hypergrid.dimension import Dimension
 from hypergrid.grid import HyperGrid
 
-__all__ = ["HyperGrid", "Dimension", "FixedDimension"]
+__all__ = ["HyperGrid", "Dimension"]

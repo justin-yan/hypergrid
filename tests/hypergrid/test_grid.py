@@ -9,7 +9,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.strategies import DrawFn, composite
 
-from hypergrid.dimension import FixedDimension
+from hypergrid.dimension import Dimension
 from hypergrid.grid import HyperGrid
 
 
@@ -70,7 +70,7 @@ def test_grid_sum_raw():
     rd = ("test", [1, 2, 3])
     s = g + rd
     assert len(list(s)) == 6
-    assert isinstance(s.grid2.dimensions[0], FixedDimension)
+    assert isinstance(s.grid2.dimensions[0], Dimension)
 
 
 @given(het_typed_lists())
