@@ -8,20 +8,19 @@ version = "0.0.1a1"
 authors = [
     { name="Justin Yan", email="justin@iomorphic.com" }
 ]
-description = "Hypergrid is a Python package for the concise declaration and manipulation of parameter grids, making hyperparameter optimization and batch job dispatch more manageable."
+description = "Hypergrid enables concise declaration of parameter grids for hyperparameter optimization and batch jobs."
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     ######
