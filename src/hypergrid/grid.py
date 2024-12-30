@@ -7,6 +7,7 @@ from collections.abc import Collection
 from math import prod
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Protocol, Type, runtime_checkable
 
+from hypergrid.gen.iterable import HIterable
 from hypergrid.util import instantiate_lambda
 
 if TYPE_CHECKING:
@@ -59,7 +60,7 @@ class Grid(Protocol):
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
-    def __and__(self, other: Grid | Dimension | RawDimension) -> ZipGrid:
+    def __and__(self, other: Grid | Dimension | HIterable | RawDimension) -> ZipGrid:
         match other:
             case Grid():
                 return ZipGrid(self, other)
@@ -67,6 +68,8 @@ class Grid(Protocol):
                 return ZipGrid(self, HyperGrid(other))
             case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
                 return ZipGrid(self, HyperGrid(Dimension(**{s: coll})))
+            case HIterable():
+                return ZipGrid(self, HyperGrid(other.take(len(self))))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
