@@ -12,7 +12,7 @@ from hypergrid.util import instantiate_lambda
 if TYPE_CHECKING:
     from sklearn.model_selection import ParameterGrid
 
-from hypergrid.dimension import Dimension, FixedDimension, RawDimension
+from hypergrid.dimension import Dimension, RawDimension
 
 
 @runtime_checkable
@@ -41,7 +41,7 @@ class Grid(Protocol):
             case Dimension():
                 return SumGrid(self, HyperGrid(other))
             case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
-                return SumGrid(self, HyperGrid(FixedDimension(**{s: coll})))
+                return SumGrid(self, HyperGrid(Dimension(**{s: coll})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -55,7 +55,7 @@ class Grid(Protocol):
             case Dimension():
                 return ProductGrid(self, HyperGrid(other))
             case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
-                return ProductGrid(self, HyperGrid(FixedDimension(**{s: coll})))
+                return ProductGrid(self, HyperGrid(Dimension(**{s: coll})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -66,7 +66,7 @@ class Grid(Protocol):
             case Dimension():
                 return ZipGrid(self, HyperGrid(other))
             case (str(s), coll) if isinstance(coll, Collection):  # RawDimension
-                return ZipGrid(self, HyperGrid(FixedDimension(**{s: coll})))
+                return ZipGrid(self, HyperGrid(Dimension(**{s: coll})))
             case _:
                 raise ValueError("Invalid argument for grid operation")
 
@@ -97,7 +97,7 @@ class HyperGrid(Grid):
     def __init__(self, *args: Dimension, **kwargs: Collection) -> None:
         dims = list(args)
         for dim, values in kwargs.items():
-            dims.append(FixedDimension(**{dim: values}))
+            dims.append(Dimension(**{dim: values}))
         assert len(dims) > 0, "Must provide at least one meaningful dimension"
         assert len(dims) == len(set(dims)), "Dimension names must be unique"
         self.dimensions = dims

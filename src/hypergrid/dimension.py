@@ -1,6 +1,6 @@
 import random
 from collections.abc import Callable, Collection
-from typing import TYPE_CHECKING, Generic, Iterator, Protocol, Self, TypeAlias, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Generic, Iterator, Self, TypeAlias, TypeVar
 
 if TYPE_CHECKING:
     from hypergrid.grid import HyperGrid
@@ -10,39 +10,22 @@ T_co = TypeVar("T_co", covariant=True)
 RawDimension: TypeAlias = tuple[str, Collection]
 
 
-@runtime_checkable
-class Dimension(Protocol[T_co]):
+class Dimension(Generic[T]):
     name: str
-
-    def __repr__(self) -> str: ...
-
-    def __str__(self) -> str:
-        return self.__repr__()
-
-    def __len__(self) -> int: ...
-
-    def __iter__(self) -> Iterator[T_co]: ...
-
-    def sample(self) -> T_co: ...
-
-    def to_grid(self) -> "HyperGrid":
-        from hypergrid.grid import HyperGrid
-
-        return HyperGrid(self)
-
-
-class FixedDimension(Dimension, Generic[T]):
     _sampling_strategy: Callable[..., T] = random.choice
 
     def __init__(self, **kwargs: Collection[T]):
-        assert len(kwargs) == 1, "FixedDimension is 1-d, use Grids for multiple dimensions"
+        assert len(kwargs) == 1, "Dimension is 1-d, use Grids for multiple dimensions"
         for name, values in kwargs.items():
-            assert isinstance(values, Collection), "FixedDimension assumes finite length"
+            assert isinstance(values, Collection), "Dimension assumes finite length"
             self.name = name
             self.values = values
 
     def __repr__(self) -> str:
-        return f"FixedDimension({repr(self.values)})"
+        return f"Dimension({repr(self.values)})"
+
+    def __str__(self) -> str:
+        return self.__repr__()
 
     def __len__(self) -> int:
         return len(self.values)
@@ -57,21 +40,11 @@ class FixedDimension(Dimension, Generic[T]):
         self._sampling_strategy = strategy
         return self
 
-
-@runtime_checkable
-class DistributionDimension(Dimension, Protocol[T]):
-    _itermax: int = 500
-
-    def __len__(self) -> int:
-        return self._itermax
-
-    def __iter__(self) -> Iterator[T]:
-        for _ in range(self._itermax):
-            yield self.sample()
-
-    def sample_n(self, n: int) -> FixedDimension[T]:
-        return FixedDimension(**{self.name: [self.sample() for _ in range(n)]})
-
-    def with_itermax(self, n: int) -> Self:
-        self._itermax = n
+    def with_name(self, name: str) -> Self:
+        self.name = name
         return self
+
+    def to_grid(self) -> "HyperGrid":
+        from hypergrid.grid import HyperGrid
+
+        return HyperGrid(self)
