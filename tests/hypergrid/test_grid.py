@@ -53,6 +53,7 @@ def test_hgrid_construction(lists):
     manifested_list = list(g1)
     length = len(manifested_list)
     assert length == prod([len(hlist) for hlist in lists])
+    assert length == len(g1)
     if length > 0:
         manifested_list[0].example0 == lists[0][0]
 
