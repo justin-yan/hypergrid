@@ -37,6 +37,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pip",
     "pytest>5",
     "hypothesis>5",
     "coverage>5",
