@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/justin-yan/templates-cruft",
-  "commit": "7dcfc00b0141bd705f9424f72fb496f642cb2aa2",
+  "commit": "fc073318f22b428521c223fa9ff9beef09e18969",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -9,7 +9,7 @@
       "copyright_start_year": "2023",
       "copyright_full_name": "Justin Yan",
       "_template": "https://github.com/justin-yan/templates-cruft",
-      "_commit": "7dcfc00b0141bd705f9424f72fb496f642cb2aa2"
+      "_commit": "fc073318f22b428521c223fa9ff9beef09e18969"
     }
   },
   "directory": "packages-public/python-standard"
