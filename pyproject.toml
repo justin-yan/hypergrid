@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hypergrid"
-version = "0.0.1"
+version = "0.0.1a2"
 authors = [
     { name="Justin Yan", email="justin@iomorphic.com" }
 ]

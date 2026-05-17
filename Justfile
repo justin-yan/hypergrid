@@ -71,7 +71,7 @@ testmark MARK="" TARGET=TEST_FOLDER:
     git diff --name-only HEAD^1 HEAD -G"^version" "pyproject.toml" | uniq | xargs -I {} sh -c 'just _register'
 
 @_register: init build
-    uv publish -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
+    uv publish --trusted-publishing always dist/*
 
 @repl:
     uv run --no-sync python
