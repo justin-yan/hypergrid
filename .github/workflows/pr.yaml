@@ -4,7 +4,7 @@ jobs:
   pr:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/iomorphic/image/cicd-py:latest
+      image: ghcr.io/justin-yan/image/cicd-all:0.0.1
       volumes:
         - /usr/bin/docker:/usr/bin/docker
     steps:
