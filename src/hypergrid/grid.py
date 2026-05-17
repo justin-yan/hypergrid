@@ -6,7 +6,7 @@ from collections import namedtuple
 from collections.abc import Collection
 from functools import cached_property
 from math import prod
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Optional, Protocol, Type, runtime_checkable
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Optional, Protocol, runtime_checkable
 
 from hypergrid.gen.iterable import HIterable
 from hypergrid.util import instantiate_lambda
@@ -19,7 +19,7 @@ from hypergrid.dimension import Dimension, RawDimension
 
 @runtime_checkable
 class Grid(Protocol):
-    grid_element: Type[tuple]
+    grid_element: type[tuple]
 
     @property
     def dimension_names(self) -> list[str]:
@@ -89,7 +89,7 @@ class Grid(Protocol):
     def map_to(self, **kwargs: Callable[[Any], Any]) -> MapToGrid:
         return MapToGrid(self, **kwargs)
 
-    def instantiate(self, **kwargs: Type) -> MapToGrid:
+    def instantiate(self, **kwargs: type) -> MapToGrid:
         return self.map_to(**{name: instantiate_lambda(cls) for name, cls in kwargs.items()})
 
     def to_sklearn(self) -> ParameterGrid:  # type: ignore[no-any-unimported]
